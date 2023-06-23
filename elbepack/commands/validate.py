@@ -28,8 +28,7 @@ def run_command(argv):
         oparser.print_help()
         sys.exit(20)
 
-    validation = validate_xml(args[0])
-    if validation:
+    if validation := validate_xml(args[0]):
         print("validation failed")
         for i in validation:
             print(i)

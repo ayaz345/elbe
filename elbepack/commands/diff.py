@@ -21,40 +21,33 @@ def walk_generated(gen_path, fix_path, exclude):
     fix_path = fix_path.rstrip("/")
 
     for root, _, files in os.walk(gen_path):
-        if root == gen_path:
-            infs_root = "/"
-        else:
-            infs_root = root.replace(gen_path, "")
-
+        infs_root = "/" if root == gen_path else root.replace(gen_path, "")
         if True in [infs_root.startswith(x) for x in exclude]:
             continue
 
-        if not files:
-            if not os.path.exists(fix_path + infs_root):
-                print(f"empty directory {infs_root} only exists in gen image")
-                file_to_rm.append(infs_root)
-        else:
+        if files:
             for f in files:
                 gen_fname = os.path.join(gen_path + infs_root, f)
                 fix_fname = os.path.join(fix_path + infs_root, f)
 
                 if os.path.exists(gen_fname) and os.path.exists(fix_fname):
                     if os.path.isfile(gen_fname) and os.path.isfile(fix_fname):
-                        if not os.path.islink(
-                                gen_fname) and not os.path.islink(fix_fname):
-                            if not filecmp.cmp(
-                                    gen_fname, fix_fname, shallow=False):
-                                print(
-                                    f"files {gen_fname} and {fix_fname} differ")
-                                file_differ.append(os.path.join(infs_root, f))
-                        else:
-                            if not (os.readlink(gen_fname) ==
-                                    os.readlink(fix_fname)):
+                        if os.path.islink(gen_fname) or os.path.islink(
+                            fix_fname
+                        ):
+                            if os.readlink(gen_fname) != os.readlink(
+                                fix_fname
+                            ):
                                 print(
                                     f"symlinks {gen_fname} and "
                                     f"{fix_fname} differ")
                                 file_differ.append(os.path.join(infs_root, f))
 
+                        elif not filecmp.cmp(
+                                    gen_fname, fix_fname, shallow=False):
+                            print(
+                                f"files {gen_fname} and {fix_fname} differ")
+                            file_differ.append(os.path.join(infs_root, f))
                 elif not os.path.exists(gen_fname) and \
                         os.path.exists(fix_fname):
                     print(f"file {fix_fname} only exists in fixed image")
@@ -63,6 +56,9 @@ def walk_generated(gen_path, fix_path, exclude):
                     print(f"file {gen_fname} only exists in gen image")
                     file_to_rm.append(os.path.join(infs_root, f))
 
+        elif not os.path.exists(fix_path + infs_root):
+            print(f"empty directory {infs_root} only exists in gen image")
+            file_to_rm.append(infs_root)
     return file_differ, file_to_rm
 
 
@@ -74,19 +70,11 @@ def walk_fixed(gen_path, fix_path, exclude):
     fix_path = fix_path.rstrip("/")
 
     for root, _, files in os.walk(fix_path):
-        if root == fix_path:
-            infs_root = "/"
-        else:
-            infs_root = root.replace(fix_path, "")
-
+        infs_root = "/" if root == fix_path else root.replace(fix_path, "")
         if True in [infs_root.startswith(x) for x in exclude]:
             continue
 
-        if not files:
-            if not os.path.exists(gen_path + infs_root):
-                print(f"empty directory {infs_root} only exists in fix image")
-                dir_to_create.append(infs_root.lstrip("/"))
-        else:
+        if files:
             for f in files:
                 gen_fname = os.path.join(gen_path + infs_root, f)
                 fix_fname = os.path.join(fix_path + infs_root, f)
@@ -95,6 +83,9 @@ def walk_fixed(gen_path, fix_path, exclude):
                     print(f"file {fix_fname} only exists in fixed image")
                     file_only.append(os.path.join(infs_root, f))
 
+        elif not os.path.exists(gen_path + infs_root):
+            print(f"empty directory {infs_root} only exists in fix image")
+            dir_to_create.append(infs_root.lstrip("/"))
     return file_only, dir_to_create
 
 

@@ -410,11 +410,7 @@ class ProjectManager:
         with self.lock:
             ep = self._get_current_project(userid)
 
-            debootstrap_pkgs = []
-            for p in ep.xml.xml.node("debootstrappkgs"):
-                debootstrap_pkgs.append(p.et.text)
-
-            return debootstrap_pkgs
+            return [p.et.text for p in ep.xml.xml.node("debootstrappkgs")]
 
     def apt_mark_keep(self, userid, pkgname, version):
         with self.lock:

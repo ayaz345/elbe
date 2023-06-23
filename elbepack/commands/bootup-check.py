@@ -10,10 +10,7 @@ from elbepack.treeutils import etree
 
 
 def is_in_fpl(p, fpl):
-    for ip in fpl:
-        if ip.et.text == p.name:
-            return True
-    return False
+    return any(ip.et.text == p.name for ip in fpl)
 
 
 def is_installed(ip, cache):
@@ -22,9 +19,7 @@ def is_installed(ip, cache):
     except KeyError:
         print(f"{ip.et.text} is not in local apt")
         return False
-    if p.current_state == apt_pkg.CURSTATE_INSTALLED:
-        return True
-    return False
+    return p.current_state == apt_pkg.CURSTATE_INSTALLED
 
 
 def bootup_check(xml):

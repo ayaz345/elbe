@@ -22,7 +22,7 @@ class MissingData(Exception):
 
 
 def inlucdedir(destination, directory, source, mode=None):
-    dst = destination + '/' + directory
+    dst = f'{destination}/{directory}'
     copytree(source, dst)
     if mode:
         for dp, _, fn in os.walk(dst):
@@ -56,11 +56,7 @@ def gen_update_pkg(project, xml_filename, upd_filename,
         cache = project.get_rpcaptcache()
 
         instpkgs = cache.get_installed_pkgs()
-        instindex = {}
-
-        for p in instpkgs:
-            instindex[p.name] = p
-
+        instindex = {p.name: p for p in instpkgs}
         xmlpkgs = xml.node("/fullpkgs")
         xmlindex = {}
 
@@ -131,12 +127,12 @@ def gen_update_pkg(project, xml_filename, upd_filename,
         system("cp source.xml update/new.xml")
 
     if project.presh_file:
-        copyfile(project.presh_file, update + '/pre.sh')
-        os.chmod(update + '/pre.sh', 0o755)
+        copyfile(project.presh_file, f'{update}/pre.sh')
+        os.chmod(f'{update}/pre.sh', 0o755)
 
     if project.postsh_file:
-        copyfile(project.postsh_file, update + '/post.sh')
-        os.chmod(update + '/post.sh', 0o755)
+        copyfile(project.postsh_file, f'{update}/post.sh')
+        os.chmod(f'{update}/post.sh', 0o755)
 
     if cmd_dir:
         inlucdedir(update, 'cmd', cmd_dir, mode=0o755)

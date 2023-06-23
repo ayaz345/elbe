@@ -40,10 +40,7 @@ def create_apt_prefs(xml, rfs):
 
             origin = urlsplit(repo.et.text.strip()).hostname
             pin = repo.et.attrib['pin']
-            if 'package' in repo.et.attrib:
-                package = repo.et.attrib['package']
-            else:
-                package = '*'
+            package = repo.et.attrib['package'] if 'package' in repo.et.attrib else '*'
             pinning = {'pin': pin,
                        'origin': origin,
                        'package': package}
@@ -117,7 +114,7 @@ class BuildEnv:
                 outfile.write(binpubkey)
 
     def __enter__(self):
-        if os.path.exists(self.path + '/../repo/pool'):
+        if os.path.exists(f'{self.path}/../repo/pool'):
             do(f"mv {self.path}/../repo {self.path}")
             do(f'echo "deb copy:///repo {self.xml.text("project/suite")} main" > '
                f'{self.path}/etc/apt/sources.list.d/local.list')
@@ -139,7 +136,7 @@ class BuildEnv:
     def __exit__(self, typ, value, traceback):
         self.rfs.__exit__(typ, value, traceback)
         self.cdrom_umount()
-        if os.path.exists(self.path + '/repo'):
+        if os.path.exists(f'{self.path}/repo'):
             do(f"mv {self.path}/repo {self.path}/../")
             do(f"rm {self.path}/etc/apt/sources.list.d/local.list")
             do(f"rm {self.path}/etc/apt/trusted.gpg.d/elbe-localrepo.gpg")

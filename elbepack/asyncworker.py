@@ -442,8 +442,8 @@ class GenUpdateJob(AsyncWorkerJob):
 
     def _gen_upd_filename(self):
         filename = quote(self.name, ' ') + '_'
-        filename += quote(self.base_version) + '_'
-        filename += quote(self.current_version) + '.upd'
+        filename += f'{quote(self.base_version)}_'
+        filename += f'{quote(self.current_version)}.upd'
 
         return filename
 

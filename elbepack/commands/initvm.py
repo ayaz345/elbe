@@ -80,7 +80,7 @@ def run_command(argv):
         InitVMAction.print_actions()
         sys.exit(20)
 
-    directory = opt.directory or os.getcwd() + '/initvm'
+    directory = opt.directory or f'{os.getcwd()}/initvm'
 
     # Use absolute Path
     directory = os.path.abspath(directory)

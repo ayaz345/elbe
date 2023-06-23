@@ -51,7 +51,7 @@ class ElbeSoapClient:
         set_suds_debug(debug)
 
         # Attributes
-        self.wsdl = "http://" + host + ":" + str(port) + "/soap/?wsdl"
+        self.wsdl = f"http://{host}:{str(port)}/soap/?wsdl"
         self.control = None
         self.retries = 0
 
@@ -97,7 +97,7 @@ class ElbeSoapClient:
 
                 print(f"get_file part {part} failed, retry {retry} times",
                       file=sys.stderr)
-                print(str(e), file=sys.stderr)
+                print(e, file=sys.stderr)
                 print(repr(e.line), file=sys.stderr)
 
                 if not retry:
@@ -610,13 +610,8 @@ class WaitProjectBusyAction(ClientAction):
         while True:
             try:
                 msg = client.service.get_project_busy(builddir)
-            # TODO the root cause of this problem is unclear. To enable a
-            # get more information print the exception and retry to see if
-            # the connection problem is just a temporary problem. This
-            # code should be reworked as soon as it's clear what is going on
-            # here
             except socket.error as e:
-                print(str(e), file=sys.stderr)
+                print(e, file=sys.stderr)
                 print("socket error during wait busy occured, retry..",
                       file=sys.stderr)
                 continue
@@ -725,7 +720,7 @@ class SetPdebuilderAction(ClientAction):
 
     def execute(self, client, opt, args):
 
-        if len(args) != 2 and len(args) != 3:
+        if len(args) not in [2, 3]:
             print("usage: elbe control set_pdebuild "
                   "<project_dir> <pdebuild file>", file=sys.stderr)
             sys.exit(20)
@@ -798,11 +793,7 @@ class InstallElbeVersion(ClientAction):
                 file=sys.stderr)
             sys.exit(20)
 
-        if args:
-            version = args[0]
-        else:
-            version = elbe_version
-
+        version = args[0] if args else elbe_version
         result = client.service.install_elbe_version(version,
                                                      elbe_initvm_packagelist)
 
@@ -952,13 +943,9 @@ class UploadPackageAction(RepoAction):
 
         # Parse .dsc-File and append neccessary source files to files
         if filetype == '.dsc':
-            for f in deb822.Dsc(open(filename))['Files']:
-                files.append(f['name'])
-
+            files.extend(f['name'] for f in deb822.Dsc(open(filename))['Files'])
         if filetype == '.changes':
-            for f in deb822.Changes(open(filename))['Files']:
-                files.append(f['name'])
-
+            files.extend(f['name'] for f in deb822.Changes(open(filename))['Files'])
         # Check whether all files are available
         abort = False
         for f in files:

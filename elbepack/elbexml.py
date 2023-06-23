@@ -34,10 +34,7 @@ class ValidationError(Exception):
         return rep
 
     def __str__(self):
-        retval = ""
-        for v in self.validation:
-            retval += (v + '\n')
-        return retval
+        return "".join((v + '\n') for v in self.validation)
 
 
 class NoInitvmNode(Exception):
@@ -49,11 +46,7 @@ class ValidationMode:
     CHECK_ALL = 0
 
 def replace_localmachine(mirror, initvm=True):
-    if initvm:
-        localmachine = "10.0.2.2"
-    else:
-        localmachine = "localhost"
-
+    localmachine = "10.0.2.2" if initvm else "localhost"
     return mirror.replace("LOCALMACHINE", localmachine)
 
 class ElbeXML:
@@ -67,8 +60,7 @@ class ElbeXML:
             skip_validate=False,
             url_validation=ValidationMode.NO_CHECK):
         if not skip_validate:
-            validation = validate_xml(fname)
-            if validation:
+            if validation := validate_xml(fname):
                 raise ValidationError(validation)
 
         self.xml = etree(fname)
@@ -110,10 +102,7 @@ class ElbeXML:
         if (host_arch == "amd64") and (target == "i386"):
             return False
 
-        if (host_arch == "armhf") and (target == "armel"):
-            return False
-
-        return True
+        return host_arch != "armhf" or target != "armel"
 
     def get_initvm_primary_mirror(self, cdrompath):
         if self.xml.has("initvm/mirror/primary_host"):
@@ -153,7 +142,6 @@ class ElbeXML:
         if not self.prj.has("mirror") and not self.prj.has("mirror/cdrom"):
             return "# no mirrors configured"
 
-        goptions = []
         mirrors  = []
         suite    = self.prj.text("suite")
 
@@ -173,6 +161,7 @@ class ElbeXML:
             else:
                 arch = self.text("project/buildimage/arch", key="arch")
 
+            goptions = []
             poptions = goptions + poptions
 
             if build_sources:
@@ -267,24 +256,17 @@ class ElbeXML:
                     continue
 
                 if line.startswith("deb-src ") and \
-                   url_validation != ValidationMode.CHECK_ALL:
+                       url_validation != ValidationMode.CHECK_ALL:
                     continue
 
                 lsplit = line.split(" ")
                 url = lsplit[1]
                 suite = lsplit[2]
-                r = {}
-
-                #
-                # NOTE: special interpretation if suite followed by slash
-                #
-                # deb http://mirror foo  --> URI-Prefix: http://mirror/dist/foo
-                # deb http://mirror foo/ --> URI-Prefix: http://mirror/foo
-                #
-                if suite.endswith('/'):
-                    r["url"] = f"{url}/{suite}"
-                else:
-                    r["url"] = f"{url}/dists/{suite}/"
+                r = {
+                    "url": f"{url}/{suite}"
+                    if suite.endswith('/')
+                    else f"{url}/dists/{suite}/"
+                }
 
                 #
                 # Try to get sections.
@@ -330,7 +312,7 @@ class ElbeXML:
                 t = r["url"].split('@')
                 if '://' in t[0]:
                     scheme, auth = t[0].split('://')
-                    scheme = scheme + '://'
+                    scheme = f'{scheme}://'
                 else:
                     scheme = ''
                     auth = t[0]
@@ -373,11 +355,11 @@ class ElbeXML:
             pak.et.tail = '\n'
 
     def get_buildenv_packages(self):
-        retval = []
-        if self.prj.has("buildimage/pkg-list"):
-            retval = [p.et.text for p in self.prj.node("buildimage/pkg-list")]
-
-        return retval
+        return (
+            [p.et.text for p in self.prj.node("buildimage/pkg-list")]
+            if self.prj.has("buildimage/pkg-list")
+            else []
+        )
 
     def clear_pkglist(self, name):
         tree = self.xml.ensure_child(name)
@@ -451,9 +433,7 @@ class ElbeXML:
         self.xml.set_child_position(tree, 0)
 
     def get_initvm_codename(self):
-        if self.has("initvm/suite"):
-            return self.text("initvm/suite")
-        return None
+        return self.text("initvm/suite") if self.has("initvm/suite") else None
 
     def set_cdrom_mirror(self, abspath):
         mirror = self.node("project/mirror")
@@ -462,15 +442,9 @@ class ElbeXML:
         cdrom.set_text(abspath)
 
     def dump_elbe_version(self):
-        if is_devel:
-            ver_text = elbe_version + '-devel'
-        else:
-            ver_text = elbe_version
-
+        ver_text = f'{elbe_version}-devel' if is_devel else elbe_version
         version = self.xml.ensure_child('elbe_version')
         version.set_text(ver_text)
 
     def get_elbe_version(self):
-        if self.has('elbe_version'):
-            return self.text('elbe_version')
-        return "no version"
+        return self.text('elbe_version') if self.has('elbe_version') else "no version"

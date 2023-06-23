@@ -14,10 +14,8 @@ class HashValidationFailed(Exception):
 def validate_sha256(fname, expected_hash):
     m = hashlib.sha256()
     with open(fname, "rb") as f:
-        buf = f.read(65536)
-        while buf:
+        while buf := f.read(65536):
             m.update(buf)
-            buf = f.read(65536)
     if m.hexdigest() != expected_hash:
         raise HashValidationFailed(
                 f'file "{fname}" failed to verify ! got: "{m.hexdigest()}" '

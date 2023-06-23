@@ -379,11 +379,7 @@ class Filesystem:
 
     def read_file(self, path, gz=False):
         path = self.realpath(path)
-        if gz:
-            fp = gzip.open(path, "r")
-        else:
-            fp = open(path, "r")
-
+        fp = gzip.open(path, "r") if gz else open(path, "r")
         with fp:
             retval = fp.read()
 
@@ -436,10 +432,7 @@ class Filesystem:
             exclude_dirs = []
 
         dirname = self.fname(directory)
-        if dirname == "/":
-            striplen = 0
-        else:
-            striplen = len(dirname)
+        striplen = 0 if dirname == "/" else len(dirname)
         for dirpath, dirnames, filenames in os.walk(dirname):
             subpath = dirpath[striplen:]
             if not subpath:
@@ -457,7 +450,7 @@ class Filesystem:
             for f in filenames:
                 fpath = os.path.join(subpath, f)
                 realpath = os.path.join(dirpath, f)
-                yield "/" + fpath, realpath
+                yield (f"/{fpath}", realpath)
 
     def mtime_snap(self, dirname='', exclude_dirs=None):
         if not exclude_dirs:

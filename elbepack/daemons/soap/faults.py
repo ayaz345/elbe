@@ -95,13 +95,14 @@ def soap_faults(func):
             except ElbeDBError as e:
                 raise SoapElbeDBError(str(e))
             except OSError as e:
-                raise SoapElbeProjectError("OSError: " + str(e))
+                raise SoapElbeProjectError(f"OSError: {str(e)}")
             except ValidationError as e:
                 raise SoapElbeValidationError(e)
             except InvalidLogin:
                 raise SoapElbeNotAuthorized()
             except Exception as e:
                 raise SoapElbeProjectError(format_exc())
+
         return wrapped
     if func.__code__.co_argcount == 2:
         @wraps(func)
@@ -115,13 +116,14 @@ def soap_faults(func):
             except ElbeDBError as e:
                 raise SoapElbeDBError(str(e))
             except OSError as e:
-                raise SoapElbeProjectError("OSError: " + str(e))
+                raise SoapElbeProjectError(f"OSError: {str(e)}")
             except ValidationError as e:
                 raise SoapElbeValidationError(e)
             except InvalidLogin:
                 raise SoapElbeNotAuthorized()
             except Exception as e:
                 raise SoapElbeProjectError(format_exc())
+
         return wrapped
     if func.__code__.co_argcount == 3:
         @wraps(func)
@@ -135,13 +137,14 @@ def soap_faults(func):
             except ElbeDBError as e:
                 raise SoapElbeDBError(str(e))
             except OSError as e:
-                raise SoapElbeProjectError("OSError: " + str(e))
+                raise SoapElbeProjectError(f"OSError: {str(e)}")
             except ValidationError as e:
                 raise SoapElbeValidationError(e)
             except InvalidLogin:
                 raise SoapElbeNotAuthorized()
             except Exception as e:
                 raise SoapElbeProjectError(format_exc())
+
         return wrapped
     if func.__code__.co_argcount == 4:
         @wraps(func)
@@ -155,13 +158,14 @@ def soap_faults(func):
             except ElbeDBError as e:
                 raise SoapElbeDBError(str(e))
             except OSError as e:
-                raise SoapElbeProjectError("OSError: " + str(e))
+                raise SoapElbeProjectError(f"OSError: {str(e)}")
             except ValidationError as e:
                 raise SoapElbeValidationError(e)
             except InvalidLogin:
                 raise SoapElbeNotAuthorized()
             except Exception as e:
                 raise SoapElbeProjectError(format_exc())
+
         return wrapped
     if func.__code__.co_argcount == 5:
         @wraps(func)
@@ -175,13 +179,14 @@ def soap_faults(func):
             except ElbeDBError as e:
                 raise SoapElbeDBError(str(e))
             except OSError as e:
-                raise SoapElbeProjectError("OSError: " + str(e))
+                raise SoapElbeProjectError(f"OSError: {str(e)}")
             except ValidationError as e:
                 raise SoapElbeValidationError(e)
             except InvalidLogin:
                 raise SoapElbeNotAuthorized()
             except Exception as e:
                 raise SoapElbeProjectError(format_exc())
+
         return wrapped
     if func.__code__.co_argcount == 6:
         @wraps(func)
@@ -196,13 +201,14 @@ def soap_faults(func):
             except ElbeDBError as e:
                 raise SoapElbeDBError(str(e))
             except OSError as e:
-                raise SoapElbeProjectError("OSError: " + str(e))
+                raise SoapElbeProjectError(f"OSError: {str(e)}")
             except ValidationError as e:
                 raise SoapElbeValidationError(e)
             except InvalidLogin:
                 raise SoapElbeNotAuthorized()
             except Exception as e:
                 raise SoapElbeProjectError(format_exc())
+
         return wrapped
     if func.__code__.co_argcount == 7:
         @wraps(func)
@@ -217,13 +223,14 @@ def soap_faults(func):
             except ElbeDBError as e:
                 raise SoapElbeDBError(str(e))
             except OSError as e:
-                raise SoapElbeProjectError("OSError: " + str(e))
+                raise SoapElbeProjectError(f"OSError: {str(e)}")
             except ValidationError as e:
                 raise SoapElbeValidationError(e)
             except InvalidLogin:
                 raise SoapElbeNotAuthorized()
             except Exception as e:
                 raise SoapElbeProjectError(format_exc())
+
         return wrapped
 
     raise Exception(f"arg count {func.__code__.co_argcount} not implemented")

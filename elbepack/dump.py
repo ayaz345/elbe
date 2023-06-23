@@ -25,9 +25,7 @@ validation = logging.getLogger("validation")
 def get_initvm_pkglist():
     cache = Cache()
     cache.open()
-    pkglist = [APTPackage(p) for p in cache if p.is_installed]
-
-    return pkglist
+    return [APTPackage(p) for p in cache if p.is_installed]
 
 
 def dump_fullpkgs(xml, rfs, cache):
@@ -224,7 +222,7 @@ def elbe_report(xml, buildenv, cache, targetfs):
     index = cache.get_fileindex(removeprefix='/usr')
     mt_index = targetfs.mtime_snap()
 
-    if xml.has("archive") and not xml.text("archive") is None:
+    if xml.has("archive") and xml.text("archive") is not None:
         with archive_tmpfile(xml.text("archive")) as fp:
             do(f'tar xvfj "{fp.name}" -h -C "{targetfs.path}"')
         mt_index_postarch = targetfs.mtime_snap()
@@ -279,10 +277,7 @@ def elbe_report(xml, buildenv, cache, targetfs):
     for fpath in list(mt_index.keys()):
         if fpath not in mt_index_post_fine:
             unprefixed = fpath[len('/usr'):] if fpath.startswith('/usr') else fpath
-            if unprefixed in index:
-                pkg = index[unprefixed]
-            else:
-                pkg = "postinst generated"
+            pkg = index[unprefixed] if unprefixed in index else "postinst generated"
             report.info("|+%s+|%s", fpath, pkg)
 
     report.info("")
@@ -291,10 +286,7 @@ def elbe_report(xml, buildenv, cache, targetfs):
     report.info("")
 
     instpkgs = cache.get_installed_pkgs()
-    pkgindex = {}
-    for p in instpkgs:
-        pkgindex[p.name] = p
-
+    pkgindex = {p.name: p for p in instpkgs}
     if xml.has("target/pkgversionlist"):
         targetfs.remove('etc/elbe_pkglist')
         f = targetfs.open('etc/elbe_pkglist', 'w')

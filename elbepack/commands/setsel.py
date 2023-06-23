@@ -16,7 +16,7 @@ def parse_selections(fname):
 
     sels = []
 
-    for l in fp.readlines():
+    for l in fp:
         if not l:
             continue
         if l[0] == '#':

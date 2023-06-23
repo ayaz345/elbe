@@ -45,12 +45,11 @@ class TestPylint(ElbeTestCase):
         try:
             system(f"pylint3 {' '.join(self.pylint_opts)} {self.param}")
         except ElbeTestException as e:
-            if self.param in TestPylint.failure_set:
-                self.stdout = e.out
-                self.skipTest(
-                    f"Pylint test for {self.param} is expected to fail")
-            else:
+            if self.param not in TestPylint.failure_set:
                 raise
+            self.stdout = e.out
+            self.skipTest(
+                f"Pylint test for {self.param} is expected to fail")
         else:
             if self.param in TestPylint.failure_set:
                 raise Exception(f"Pylint test for {self.param} is expected to fail, but did not !")

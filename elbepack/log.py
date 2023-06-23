@@ -84,12 +84,7 @@ class ThreadFilter(logging.Filter):
         self.thread = threading.current_thread().ident
 
     def filter(self, record):
-        if hasattr(record, '_thread'):
-            # Hack to fake logging for another thread
-            # pylint: disable=protected-access
-            thread = record._thread
-        else:
-            thread = record.thread
+        thread = record._thread if hasattr(record, '_thread') else record.thread
         retval = record.name in self.allowed and thread == self.thread
         if retval and not hasattr(record, 'context'):
             record.context = f"[{record.levelname}]"
@@ -226,8 +221,7 @@ class AsyncLogging:
         self.atmost = atmost
         self.fd = None
         calling_thread = threading.current_thread().ident
-        extra = {"_thread": calling_thread}
-        extra["context"] = ""
+        extra = {"_thread": calling_thread, "context": ""}
         self.stream = logging.LoggerAdapter(stream, extra)
         self.block = logging.LoggerAdapter(block, extra)
 

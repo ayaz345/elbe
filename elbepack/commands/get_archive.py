@@ -14,9 +14,8 @@ from elbepack.treeutils import etree
 
 
 def unbase(s, fname):
-    outfile = open(fname, "w+b")
-    outfile.write(standard_b64decode(s))
-    outfile.close()
+    with open(fname, "w+b") as outfile:
+        outfile.write(standard_b64decode(s))
 
 
 def run_command(argv):
@@ -40,7 +39,7 @@ def run_command(argv):
         print("Error reading xml file!")
         sys.exit(20)
 
-    if xml.has("archive") and not xml.text("archive") is None:
+    if xml.has("archive") and xml.text("archive") is not None:
         try:
             unbase(xml.text("archive"), args[1])
         except BaseException:

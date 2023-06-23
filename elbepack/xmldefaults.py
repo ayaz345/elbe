@@ -200,7 +200,4 @@ class ElbeDefaults:
     def __getitem__(self, key):
         if key in self.defaults:
             return self.defaults[key]
-        if key in self.generic_defaults:
-            return self.generic_defaults[key]
-
-        return None
+        return self.generic_defaults[key] if key in self.generic_defaults else None

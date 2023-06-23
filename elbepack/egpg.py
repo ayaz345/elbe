@@ -74,9 +74,7 @@ class OverallStatus:
         #
         # This ensure that the number of valid keys is _always_ over
         # 50%.
-        if self.valid < self.valid_threshold:
-            return 2
-        return 0
+        return 2 if self.valid < self.valid_threshold else 0
 
 
 def check_signature(ctx, signature):
@@ -172,11 +170,7 @@ def unsign_file(fname):
             status = check_signature(ctx, signature)
             overall_status.add(status)
 
-        if overall_status.to_exitcode():
-            return None
-
-        return outfilename
-
+        return None if overall_status.to_exitcode() else outfilename
     return None
 
 def unlock_key(fingerprint):
@@ -233,7 +227,7 @@ def sign(infile, outfile, fingerprint):
                 fd.write(signature)
 
 def sign_file(fname, fingerprint):
-    outfilename = fname + '.gpg'
+    outfilename = f'{fname}.gpg'
     sign(fname, outfilename, fingerprint)
 
 def get_fingerprints():
@@ -242,10 +236,7 @@ def get_fingerprints():
                         None,
                         '/var/cache/elbe/gnupg')
     keys = ctx.op_keylist_all(None, False)
-    fingerprints = []
-    for k in keys:
-        fingerprints.append(k.subkeys[0].fpr)
-    return fingerprints
+    return [k.subkeys[0].fpr for k in keys]
 
 # End Of Time - Roughtly 136 years
 #

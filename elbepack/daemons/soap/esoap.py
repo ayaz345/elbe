@@ -119,8 +119,7 @@ class ESoap (ServiceBase):
     @soap_faults
     def get_files(self, uid, builddir):
         self.app.pm.open_project(uid, builddir)
-        files = self.app.pm.db.get_project_files(builddir)
-        return files
+        return self.app.pm.db.get_project_files(builddir)
 
     @rpc(String, String, String, Integer, _returns=Integer)
     @authenticated_uid
@@ -165,7 +164,7 @@ class ESoap (ServiceBase):
 
         size = 1024 * 1024 * 5
         pos = size * part
-        file_name = builddir + "/" + filename
+        file_name = f"{builddir}/{filename}"
         file_stat = os.stat(file_name)
 
         if pos >= file_stat.st_size:
@@ -256,10 +255,8 @@ class ESoap (ServiceBase):
 
         cdrom_fname = os.path.join(builddir, "uploaded_cdrom.iso")
 
-        # Now append data to cdrom_file
-        fp = open(cdrom_fname, "ab")
-        fp.write(binascii.a2b_base64(data))
-        fp.close()
+        with open(cdrom_fname, "ab") as fp:
+            fp.write(binascii.a2b_base64(data))
 
     @rpc(String)
     @authenticated_uid
@@ -289,10 +286,8 @@ class ESoap (ServiceBase):
 
         pdebuild_fname = os.path.join(builddir, "current_pdebuild.tar.gz")
 
-        # Now write empty File
-        fp = open(pdebuild_fname, "ab")
-        fp.write(binascii.a2b_base64(data))
-        fp.close()
+        with open(pdebuild_fname, "ab") as fp:
+            fp.write(binascii.a2b_base64(data))
 
     @rpc(String, Integer, String, Boolean)
     @authenticated_uid
@@ -324,10 +319,8 @@ class ESoap (ServiceBase):
 
         orig_fname = os.path.join(builddir, self.app.pm.get_orig_fname(uid))
 
-        # Now append to File
-        fp = open(orig_fname, "ab")
-        fp.write(binascii.a2b_base64(data))
-        fp.close()
+        with open(orig_fname, "ab") as fp:
+            fp.write(binascii.a2b_base64(data))
 
     @rpc(String)
     @authenticated_uid
@@ -375,9 +368,7 @@ class ESoap (ServiceBase):
     def get_project_busy(self, uid, builddir):
         self.app.pm.open_project(uid, builddir)
         ret, msg = self.app.pm.current_project_is_busy(uid)
-        if not msg and not ret:
-            return 'ELBE-FINISH'
-        return msg
+        return 'ELBE-FINISH' if not msg and not ret else msg
 
     @rpc()
     @authenticated_admin

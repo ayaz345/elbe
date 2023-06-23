@@ -13,8 +13,7 @@ def run_command(argv):
         print("Please pass the name of the file to unsign.")
         return
 
-    fname = unsign_file(argv[0])
-    if fname:
+    if fname := unsign_file(argv[0]):
         print(f"unsigned file: {fname}")
     else:
         print("removing signature failed")

@@ -46,9 +46,9 @@ class TestSuite:
                 test_cases.append(self.do_test(test, self.target))
             except TestException:
                 pass # TODO - Handle me!
-        ts = junit.TestSuite(name=self.node.et.attrib["name"],
-                             test_cases=test_cases)
-        return ts
+        return junit.TestSuite(
+            name=self.node.et.attrib["name"], test_cases=test_cases
+        )
 
 @TestSuite.register("BaseTest", register=False)
 class BaseTest:

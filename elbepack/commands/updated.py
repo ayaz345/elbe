@@ -67,16 +67,8 @@ def run_command(argv):
     status.nosign = opt.nosign
     status.verbose = opt.verbose
 
-    if not opt.update_dir:
-        update_dir = "/var/cache/elbe/updates"
-    else:
-        update_dir = opt.update_dir
-
-    if not opt.repo_dir:
-        status.repo_dir = "/var/cache/elbe/repos"
-    else:
-        status.repo_dir = opt.repo_dir
-
+    update_dir = opt.update_dir if opt.update_dir else "/var/cache/elbe/updates"
+    status.repo_dir = "/var/cache/elbe/repos" if not opt.repo_dir else opt.repo_dir
     if not os.path.isdir(update_dir):
         os.makedirs(update_dir)
 

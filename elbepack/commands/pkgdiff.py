@@ -61,9 +61,8 @@ def run_command(argv):
                gc[p.name].is_auto_installed and not \
                p.essential:
                 gen_pkgs[p.name] = p.current_ver
-        else:
-            if p.current_ver and not p.essential:
-                gen_pkgs[p.name] = p.current_ver
+        elif p.current_ver and not p.essential:
+            gen_pkgs[p.name] = p.current_ver
 
     apt_pkg.init_config()
     apt_pkg.config.set('RootDir', fix_rfs)
@@ -80,9 +79,8 @@ def run_command(argv):
                fc[p.name].is_auto_installed and not \
                p.essential:
                 fix_pkgs[p.name] = p.current_ver
-        else:
-            if p.current_ver and not p.essential:
-                fix_pkgs[p.name] = p.current_ver
+        elif p.current_ver and not p.essential:
+            fix_pkgs[p.name] = p.current_ver
 
     for p in fix_pkgs:
         if p not in gen_pkgs:
@@ -92,6 +90,6 @@ def run_command(argv):
         if p not in fix_pkgs.keys():
             print(f"-<pkg>{p}</pkg>")
 
-    for p in fix_pkgs:
-        if p in gen_pkgs.keys() and fix_pkgs[p] != gen_pkgs[p]:
+    for p, value in fix_pkgs.items():
+        if p in gen_pkgs and value != gen_pkgs[p]:
             print(f"{p}: Version mismatch {fix_pkgs[p]} != {gen_pkgs[p]}")

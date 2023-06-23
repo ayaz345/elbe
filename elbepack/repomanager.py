@@ -21,13 +21,9 @@ class RepoAttributes:
     def __init__(self, codename, arch, components,
                  mirror='http://ftp.de.debian.org/debian'):
         self.codename = codename
-        if isinstance(arch, str):
-            self.arch = set([arch])
-        else:
-            self.arch = set(arch)
-
+        self.arch = {arch} if isinstance(arch, str) else set(arch)
         if isinstance(components, str):
-            self.components = set([components])
+            self.components = {components}
         else:
             self.components = set(components)
 
@@ -94,12 +90,7 @@ class RepoBase:
 
     def get_volume_fs(self, volume):
         if self.maxsize:
-            if volume >= 0:
-                volume_no = volume
-            else:
-                # negative numbers represent the volumes counted from last
-                # (-1: last, -2: second last, ...)
-                volume_no = self.volume_count + 1 + volume
+            volume_no = volume if volume >= 0 else self.volume_count + 1 + volume
             volname = os.path.join(self.vol_path, f"vol{volume_no:02}")
             return Filesystem(volname)
 
@@ -117,16 +108,34 @@ class RepoBase:
         need_update = False
 
         for att in self.attrs:
-            fp.write("Origin: " + self.origin + "\n")
-            fp.write("Label: " + self.origin + "\n")
-            fp.write("Codename: " + att.codename + "\n")
+            fp.write(f"Origin: {self.origin}" + "\n")
+            fp.write(f"Label: {self.origin}" + "\n")
+            fp.write(f"Codename: {att.codename}" + "\n")
             fp.write("Architectures: " + " ".join(att.arch) + "\n")
-            fp.write("Components: " + " ".join(att.components.difference(
-                set(["main/debian-installer"]))) + "\n")
-            fp.write("UDebComponents: " + " ".join(att.components.difference(
-                set(["main/debian-installer"]))) + "\n")
-            fp.write("Description: " + self.description + "\n")
-            fp.write("SignWith: " + self.keyid + "\n")
+            fp.write(
+                (
+                    (
+                        "Components: "
+                        + " ".join(
+                            att.components.difference({"main/debian-installer"})
+                        )
+                    )
+                    + "\n"
+                )
+            )
+            fp.write(
+                (
+                    (
+                        "UDebComponents: "
+                        + " ".join(
+                            att.components.difference({"main/debian-installer"})
+                        )
+                    )
+                    + "\n"
+                )
+            )
+            fp.write(f"Description: {self.description}" + "\n")
+            fp.write(f"SignWith: {self.keyid}" + "\n")
 
             if 'main/debian-installer' in att.components:
                 fp.write("Update: di\n")
@@ -134,7 +143,7 @@ class RepoBase:
                 ufp = self.fs.open("conf/updates", "w")
 
                 ufp.write("Name: di\n")
-                ufp.write("Method: " + att.mirror + "\n")
+                ufp.write(f"Method: {att.mirror}" + "\n")
                 ufp.write("VerifyRelease: blindtrust\n")
                 ufp.write("Components: \n")
                 ufp.write("GetInRelease: no\n")
@@ -346,13 +355,13 @@ class RepoBase:
     def buildiso(self, fname, options=""):
         files = []
         if self.volume_count == 0:
-            new_path = '"' + self.fs.path + '"'
+            new_path = f'"{self.fs.path}"'
             do(f"genisoimage {options} -o {fname} -J -joliet-long -R {new_path}")
             files.append(fname)
         else:
             for i in self.volume_indexes:
                 volfs = self.get_volume_fs(i)
-                newname = fname + (f"{i:02}")
+                newname = f"{fname}{i:02}"
                 do(f"genisoimage {options} -o {newname} -J -joliet-long "
                    f"-R {volfs.path}")
                 files.append(newname)

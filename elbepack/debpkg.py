@@ -34,9 +34,8 @@ def gen_controlfile(name, version, arch, description, deps):
 
 
 def write_file(fname, mode, cont):
-    f = open(fname, "w")
-    f.write(cont)
-    f.close()
+    with open(fname, "w") as f:
+        f.write(cont)
     os.chmod(fname, mode)
 
 
@@ -75,8 +74,7 @@ def build_binary_deb(
         os.system(f'cp -a "{fname}" "{full_instpath}"')
 
     os.system(f'dpkg-deb --build "{pkgdir}"')
-    os.system(
-        f'cp -v "{os.path.join(tmpdir, pkgfname + ".deb")}" "{target_dir}"')
+    os.system(f'cp -v "{os.path.join(tmpdir, f"{pkgfname}.deb")}" "{target_dir}"')
     os.system(f'rm -r "{tmpdir}"')
 
-    return pkgfname + ".deb"
+    return f"{pkgfname}.deb"

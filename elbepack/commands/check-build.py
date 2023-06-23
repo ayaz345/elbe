@@ -94,8 +94,6 @@ class CheckBase:
     # pylint: disable=no-self-use
     def run(self):
         raise Exception("Check run method not implemented")
-        # pylint: disable=unreachable
-        return 0
 
     def fail(self, reason):
         raise CheckException(reason)
@@ -398,9 +396,7 @@ class CheckImage(CheckBase):
         return tmp
 
     def open_img(self, path):
-        if path.endswith(".tar.gz"):
-            return self.open_tgz(path)
-        return open(path)
+        return self.open_tgz(path) if path.endswith(".tar.gz") else open(path)
 
     def run(self):
 
@@ -479,37 +475,14 @@ class CheckImage(CheckBase):
 
     def do_comm(self, img_name, qemu, opts, comm):
 
-        child      = pexpect.spawn(qemu + " " + opts)
+        child = pexpect.spawn(f"{qemu} {opts}")
         transcript = []
         ret        = 0
 
         try:
             for action, text in comm:
 
-                if action == "expect":
-
-                    # Try to expect something from the guest If there's a
-                    # timeout; the test fails Otherwise; Add to the transcript
-                    # what we received
-                    try:
-                        child.expect(text, timeout=60)
-                    except pexpect.exceptions.TIMEOUT:
-                        logging.error('Was expecting "%s" but got timeout (%ds)',
-                                      text, child.timeout)
-                        ret = 1
-                        break
-                    else:
-                        transcript.append(child.before.decode('utf-8'))
-                        transcript.append(child.after.decode('utf-8'))
-
-                elif action == "sendline":
-                    child.sendline(text)
-
-                # We're expecting the serial line to be closed by the guest.  If
-                # there's a timeout, it means that the guest has not closed the
-                # line and the test has failed.  In every case the test ends
-                # here.
-                elif action == "EOF":
+                if action == "EOF":
                     try:
                         child.expect(pexpect.EOF)
                     except pexpect.exceptions.TIMEOUT:
@@ -521,7 +494,22 @@ class CheckImage(CheckBase):
                         transcript.append(child.before.decode('utf-8'))
                     break
 
-        # Woops. The guest has die and we didn't expect that!
+                elif action == "expect":
+                    # Try to expect something from the guest If there's a
+                    # timeout; the test fails Otherwise; Add to the transcript
+                    # what we received
+                    try:
+                        child.expect(text, timeout=60)
+                    except pexpect.exceptions.TIMEOUT:
+                        logging.error('Was expecting "%s" but got timeout (%ds)',
+                                      text, child.timeout)
+                        ret = 1
+                        break
+                    else:
+                        transcript.extend((child.before.decode('utf-8'), child.after.decode('utf-8')))
+                elif action == "sendline":
+                    child.sendline(text)
+
         except pexpect.exceptions.EOF as E:
             logging.error("Communication was interrupted unexpectedly %s", E)
             ret = 1

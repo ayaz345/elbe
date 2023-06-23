@@ -53,9 +53,7 @@ class ElbeTestCase(unittest.TestCase):
 
     def __str__(self):
         name = super(ElbeTestCase, self).__str__()
-        if self.param:
-            return f"{name} : param={self.param}"
-        return name
+        return f"{name} : param={self.param}" if self.param else name
 
     def parameterize(self, param):
         return self.__class__(methodName=self.methodName, param=param)
@@ -76,17 +74,12 @@ class ElbeTestSuite:
                 self.tests.append(test)
                 continue
 
-            if callable(test.params):
-                params = test.params()
-            else:
-                params = test.params
-
+            params = test.params() if callable(test.params) else test.params
             for param in params:
                 self.tests.append(test.parameterize(param))
 
     def __iter__(self):
-        for test in self.tests:
-            yield test
+        yield from self.tests
 
     def filter_test(self, parallel, regex, invert):
 
@@ -101,9 +94,7 @@ class ElbeTestSuite:
 
         self.tests.sort(key=str)
 
-        # Tests filtered here are skipped quietly
-        i = 0
-        for test in self.tests:
+        for i, test in enumerate(self.tests):
 
             skip = False
 
@@ -115,8 +106,6 @@ class ElbeTestSuite:
 
             if not skip:
                 elected.append(test)
-
-            i += 1
 
         self.tests = elected
 
@@ -243,8 +232,8 @@ def run_command(argv):
     # Set test level threshold
     if opt.level not in ElbeTestLevel.__members__:
         print(
-            f"Invalid level value '{opt.level}'. Valid values are: "
-            f"{', '.join(key for key in ElbeTestLevel.__members__)}")
+            f"Invalid level value '{opt.level}'. Valid values are: {', '.join(ElbeTestLevel.__members__)}"
+        )
         os.sys.exit(20)
 
     ElbeTestCase.level = ElbeTestLevel[opt.level]

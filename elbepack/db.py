@@ -56,7 +56,7 @@ def session_scope(session):
         try:
             session.commit()
         except OperationalError as e:
-            raise ElbeDBError("database commit failed: " + str(e))
+            raise ElbeDBError(f"database commit failed: {str(e)}")
     except BaseException:
         session.rollback()
         raise
@@ -113,26 +113,17 @@ class ElbeDB:
     def list_users(self):
         with session_scope(self.session) as s:
             res = s.query(User).all()
-            ret = []
-            for u in res:
-                ret.append(UserData(u))
-            return ret
+            return [UserData(u) for u in res]
 
     def list_projects(self):
         with session_scope(self.session) as s:
             res = s.query(Project).all()
-            ret = []
-            for p in res:
-                ret.append(ProjectData(p))
-            return ret
+            return [ProjectData(p) for p in res]
 
     def list_projects_of(self, userid):
         with session_scope(self.session) as s:
             res = s.query(Project).filter(Project.owner_id == userid).all()
-            ret = []
-            for p in res:
-                ret.append(ProjectData(p))
-            return ret
+            return [ProjectData(p) for p in res]
 
     def get_project_data(self, builddir):
         # Can throw: ElbeDBError
@@ -156,7 +147,7 @@ class ElbeDB:
             p = None
             try:
                 p = s.query(Project). \
-                    filter(Project.builddir == builddir).one()
+                        filter(Project.builddir == builddir).one()
             except NoResultFound:
                 raise ElbeDBError(
                     f"project {builddir} is not registered in the database")
@@ -168,11 +159,11 @@ class ElbeDB:
 
             p.edit = datetime.utcnow()
 
-            with open(builddir + "/postbuild.sh", 'w') as dst:
+            with open(f"{builddir}/postbuild.sh", 'w') as dst:
                 copyfileobj(postbuild_file, dst)
 
-            os.chmod(builddir + "/postbuild.sh", 0o755)
-            dos2unix(builddir + "/postbuild.sh")
+            os.chmod(f"{builddir}/postbuild.sh", 0o755)
+            dos2unix(f"{builddir}/postbuild.sh")
 
             return _update_project_file(s, builddir,
                 "postbuild.sh", "application/sh", "postbuild script")
@@ -185,7 +176,7 @@ class ElbeDB:
             p = None
             try:
                 p = s.query(Project). \
-                    filter(Project.builddir == builddir).one()
+                        filter(Project.builddir == builddir).one()
             except NoResultFound:
                 raise ElbeDBError(
                     f"project {builddir} is not registered in the database")
@@ -195,16 +186,16 @@ class ElbeDB:
                     f"cannot set savesh file while project {builddir} is busy")
 
             p.edit = datetime.utcnow()
-            if p.status == "empty_project" or p.status == "build_failed":
+            if p.status in ["empty_project", "build_failed"]:
                 p.status = "needs_build"
             elif p.status == "build_done":
                 p.status = "has_changes"
 
-            with open(builddir + "/save.sh", 'w') as dst:
+            with open(f"{builddir}/save.sh", 'w') as dst:
                 copyfileobj(savesh_file, dst)
 
-            os.chmod(builddir + "/save.sh", 0o755)
-            dos2unix(builddir + "/save.sh")
+            os.chmod(f"{builddir}/save.sh", 0o755)
+            dos2unix(f"{builddir}/save.sh")
 
             return _update_project_file(
                 s, builddir,
@@ -218,7 +209,7 @@ class ElbeDB:
             p = None
             try:
                 p = s.query(Project). \
-                    filter(Project.builddir == builddir).one()
+                        filter(Project.builddir == builddir).one()
             except NoResultFound:
                 raise ElbeDBError(
                     f"project {builddir} is not registered in the database")
@@ -228,15 +219,15 @@ class ElbeDB:
                     f"cannot set presh file while project {builddir} is busy")
 
             p.edit = datetime.utcnow()
-            if p.status == "empty_project" or p.status == "build_failed":
+            if p.status in ["empty_project", "build_failed"]:
                 p.status = "needs_build"
             elif p.status == "build_done":
                 p.status = "has_changes"
 
-            with open(builddir + "/pre.sh", 'w') as dst:
+            with open(f"{builddir}/pre.sh", 'w') as dst:
                 copyfileobj(presh_file, dst)
 
-            dos2unix(builddir + "/pre.sh")
+            dos2unix(f"{builddir}/pre.sh")
 
             return _update_project_file(
                 s, builddir, "pre.sh", "application/sh", "pre install script")
@@ -249,7 +240,7 @@ class ElbeDB:
             p = None
             try:
                 p = s.query(Project). \
-                    filter(Project.builddir == builddir).one()
+                        filter(Project.builddir == builddir).one()
             except NoResultFound:
                 raise ElbeDBError(
                     f"project {builddir} is not registered in the database")
@@ -259,15 +250,15 @@ class ElbeDB:
                     f"cannot set postsh file while project {builddir} is busy")
 
             p.edit = datetime.utcnow()
-            if p.status == "empty_project" or p.status == "build_failed":
+            if p.status in ["empty_project", "build_failed"]:
                 p.status = "needs_build"
             elif p.status == "build_done":
                 p.status = "has_changes"
 
-            with open(builddir + "/post.sh", 'w') as dst:
+            with open(f"{builddir}/post.sh", 'w') as dst:
                 copyfileobj(postsh_file, dst)
 
-            dos2unix(builddir + "/post.sh")
+            dos2unix(f"{builddir}/post.sh")
 
             return _update_project_file(
                 s, builddir,
@@ -288,7 +279,7 @@ class ElbeDB:
             p = None
             try:
                 p = s.query(Project). \
-                    filter(Project.builddir == builddir).one()
+                        filter(Project.builddir == builddir).one()
             except NoResultFound:
                 raise ElbeDBError(
                     f"project {builddir} is not registered in the database")
@@ -304,7 +295,7 @@ class ElbeDB:
             p.name = xml.text("project/name")
             p.version = xml.text("project/version")
             p.edit = datetime.utcnow()
-            if p.status == "empty_project" or p.status == "build_failed":
+            if p.status in ["empty_project", "build_failed"]:
                 p.status = "needs_build"
             elif p.status == "build_done":
                 p.status = "has_changes"
@@ -391,11 +382,7 @@ class ElbeDB:
                     f"project {builddir} is not registered in the database")
 
             sourcexmlpath = os.path.join(builddir, "source.xml")
-            if os.path.exists(sourcexmlpath):
-                p.status = "needs_build"
-            else:
-                p.status = "empty_project"
-
+            p.status = "needs_build" if os.path.exists(sourcexmlpath) else "empty_project"
         if clean:
             targetpath = os.path.join(builddir, "target")
             if os.path.exists(targetpath):
@@ -419,10 +406,10 @@ class ElbeDB:
 
             if not os.path.exists(ep.builddir):
                 os.makedirs(ep.builddir)
-            if not os.path.isfile(ep.builddir + "/source.xml") and ep.xml:
-                ep.xml.xml.write(ep.builddir + "/source.xml")
+            if not os.path.isfile(f"{ep.builddir}/source.xml") and ep.xml:
+                ep.xml.xml.write(f"{ep.builddir}/source.xml")
 
-            with open(ep.builddir + "/source.xml") as xml_file:
+            with open(f"{ep.builddir}/source.xml") as xml_file:
                 xml_str = xml_file.read()
                 if not project:
                     project = Project(name=ep.xml.text("project/name"),
@@ -444,35 +431,35 @@ class ElbeDB:
         postbuild_file = None
         try:
             postbuild = self.get_project_file(builddir, 'postbuild.sh')
-            postbuild_file = postbuild.builddir + '/' + postbuild.name
+            postbuild_file = f'{postbuild.builddir}/{postbuild.name}'
         except ElbeDBError:
             pass
 
         presh_file = None
         try:
             presh_handle = self.get_project_file(builddir, 'pre.sh')
-            presh_file = presh_handle.builddir + '/' + presh_handle.name
+            presh_file = f'{presh_handle.builddir}/{presh_handle.name}'
         except ElbeDBError:
             pass
 
         postsh_file = None
         try:
             postsh_handle = self.get_project_file(builddir, 'post.sh')
-            postsh_file = postsh_handle.builddir + '/' + postsh_handle.name
+            postsh_file = f'{postsh_handle.builddir}/{postsh_handle.name}'
         except ElbeDBError:
             pass
 
         savesh_file = None
         try:
             savesh_handle = self.get_project_file(builddir, 'save.sh')
-            savesh_file = savesh_handle.builddir + '/' + savesh_handle.name
+            savesh_file = f'{savesh_handle.builddir}/{savesh_handle.name}'
         except ElbeDBError:
             pass
 
         with session_scope(self.session) as s:
             try:
                 p = s.query(Project). \
-                    filter(Project.builddir == builddir).one()
+                        filter(Project.builddir == builddir).one()
 
                 return ElbeProject(p.builddir, name=p.name,
                                    postbuild_file=postbuild_file,
@@ -489,14 +476,13 @@ class ElbeDB:
         with session_scope(self.session) as s:
             try:
                 p = s.query(Project).with_for_update(). \
-                    filter(Project.builddir == builddir).one()
+                        filter(Project.builddir == builddir).one()
             except NoResultFound:
                 raise ElbeDBError(
                     f"project {builddir} is not registered in the database")
 
             if p.status not in allowed_status:
-                raise ElbeDBError("project: " + builddir +
-                                  " set_busy: invalid status: " + p.status)
+                raise ElbeDBError(f"project: {builddir} set_busy: invalid status: {p.status}")
 
             old_status = p.status
             p.status = "busy"
@@ -548,15 +534,12 @@ class ElbeDB:
         with session_scope(self.session) as s:
             try:
                 p = s.query(Project).filter(Project.builddir == builddir).\
-                    one()
+                        one()
             except NoResultFound:
                 raise ElbeDBError(
                     f"project {builddir} is not registered in the database")
 
-            if p.owner_id is None:
-                return None
-
-            return int(p.owner_id)
+            return None if p.owner_id is None else int(p.owner_id)
 
     def set_project_version(self, builddir, new_version=None):
         if new_version == "":
@@ -569,12 +552,12 @@ class ElbeDB:
         with session_scope(self.session) as s:
             try:
                 p = s.query(Project).filter(Project.builddir == builddir).\
-                    one()
+                        one()
             except NoResultFound:
                 raise ElbeDBError(
                     f"project {builddir} is not registered in the database")
 
-            if p.status == "empty_project" or p.status == "busy":
+            if p.status in ["empty_project", "busy"]:
                 raise ElbeDBError(
                     "project: " +
                     builddir +
@@ -983,7 +966,7 @@ class ElbeDB:
             try:
                 os.makedirs(cls.db_path)
             except OSError as e:
-                print(str(e))
+                print(e)
                 return
 
         db = ElbeDB()
@@ -991,7 +974,7 @@ class ElbeDB:
         try:
             db.add_user(name, fullname, password, email, admin)
         except ElbeDBError as e:
-            print(str(e))
+            print(e)
 
 
 class User(Base):
@@ -1055,10 +1038,7 @@ class ProjectVersionData:
     def __init__(self, pv):
         self.builddir = str(pv.builddir)
         self.version = str(pv.version)
-        if pv.description:
-            self.description = str(pv.description)
-        else:
-            self.description = None
+        self.description = str(pv.description) if pv.description else None
         self.timestamp = datetime(
             pv.timestamp.year,
             pv.timestamp.month,
@@ -1084,7 +1064,4 @@ class ProjectFileData:
         self.name = str(pf.name)
         self.builddir = str(pf.builddir)
         self.mime_type = str(pf.mime_type)
-        if pf.description:
-            self.description = str(pf.description)
-        else:
-            self.description = None
+        self.description = str(pf.description) if pf.description else None

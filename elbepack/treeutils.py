@@ -33,7 +33,7 @@ class ebase:
         self.et = et
 
     def text(self, path, **kwargs):
-        el = self.et.find("./" + path)
+        el = self.et.find(f"./{path}")
         if el is None:
             if "default" in kwargs:
                 default = kwargs["default"]
@@ -50,10 +50,8 @@ class ebase:
         return self.et.tag
 
     def node(self, path):
-        retval = self.et.find("./" + path)
-        if retval is not None:
-            return elem(retval)
-        return None
+        retval = self.et.find(f"./{path}")
+        return elem(retval) if retval is not None else None
 
     def all(self, path):
         return map(elem, self.et.findall(path))
@@ -62,7 +60,7 @@ class ebase:
         return eiter(iter(self.et))
 
     def has(self, path):
-        return not self.et.find(path) is None
+        return self.et.find(path) is not None
 
     def set_text(self, text):
         self.et.text = text
@@ -79,11 +77,8 @@ class elem(ebase):
         ebase.__init__(self, el)
 
     def ensure_child(self, tag):
-        retval = self.et.find("./" + tag)
-        if retval is not None:
-            return elem(retval)
-
-        return elem(SubElement(self.et, tag))
+        retval = self.et.find(f"./{tag}")
+        return elem(retval) if retval is not None else elem(SubElement(self.et, tag))
 
     def append(self, tag):
         retval = elem(SubElement(self.et, tag))
@@ -99,9 +94,7 @@ class elem(ebase):
 
     def bool_attr(self, attrname):
         attr = self.et.attrib.get(attrname)
-        if attr in ('true', '1'):
-            return True
-        return False
+        return attr in ('true', '1')
 
     def get_parent(self):
         return elem(self.et.getparent())
@@ -126,7 +119,7 @@ class etree(ebase):
         return self.et.tostring()
 
     def ensure_child(self, tag):
-        retval = self.et.find("./" + tag)
+        retval = self.et.find(f"./{tag}")
         if retval is not None:
             return elem(retval)
         return elem(SubElement(self.et.getroot(), tag))

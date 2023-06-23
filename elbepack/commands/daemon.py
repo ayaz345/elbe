@@ -29,8 +29,13 @@ def run_command(argv):
                        help="port to host daemon")
 
     for d in daemons:
-        oparser.add_option("--" + str(d), dest=str(d), default=False,
-                           action="store_true", help="enable " + str(d))
+        oparser.add_option(
+            f"--{str(d)}",
+            dest=str(d),
+            default=False,
+            action="store_true",
+            help=f"enable {str(d)}",
+        )
 
     (opt, _) = oparser.parse_args(argv)
 
@@ -42,13 +47,12 @@ def run_command(argv):
                 if getattr(opt, o):
                     active = True
                     print(f"enable {d}")
-                    module = "elbepack.daemons." + str(d)
+                    module = f"elbepack.daemons.{str(d)}"
                     _ = __import__(module)
                     cmdmod = sys.modules[module]
                     cherrypy.tree.graft(
-                        cmdmod.get_app(
-                            cherrypy.engine),
-                        "/" + str(d))
+                        cmdmod.get_app(cherrypy.engine), f"/{str(d)}"
+                    )
     if not active:
         print("no daemon activated, use")
         for d in daemons:

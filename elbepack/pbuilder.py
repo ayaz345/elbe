@@ -15,76 +15,72 @@ from elbepack.filesystem import Filesystem
 def pbuilder_write_config(builddir, xml, noccache):
     distname = xml.prj.text('suite')
     pbuilderrc_fname = os.path.join(builddir, "pbuilderrc")
-    fp = open(pbuilderrc_fname, "w")
+    with open(pbuilderrc_fname, "w") as fp:
+        fp.write('#!/bin/sh\n')
+        fp.write('set -e\n')
+        fp.write(f'MIRRORSITE="{xml.get_primary_mirror(False)}"\n')
+        fp.write(f'OTHERMIRROR="deb http://127.0.0.1:8080{builddir}/repo {distname} main"\n')
+        fp.write(f'BASETGZ="{os.path.join(builddir, "pbuilder", "base.tgz")}"\n')
+        fp.write(f'DISTRIBUTION="{distname}"\n')
+        fp.write(f'BUILDRESULT="{os.path.join(builddir, "pbuilder", "result")}"\n')
+        fp.write(f'APTCACHE="{os.path.join(builddir, "pbuilder", "aptcache")}"\n')
+        fp.write(f'HOOKDIR="{os.path.join(builddir, "pbuilder", "hooks.d")}"\n')
+        fp.write('PATH="/usr/share/elbe/qemu-elbe:$PATH"\n')
 
-    fp.write('#!/bin/sh\n')
-    fp.write('set -e\n')
-    fp.write(f'MIRRORSITE="{xml.get_primary_mirror(False)}"\n')
-    fp.write(f'OTHERMIRROR="deb http://127.0.0.1:8080{builddir}/repo {distname} main"\n')
-    fp.write(f'BASETGZ="{os.path.join(builddir, "pbuilder", "base.tgz")}"\n')
-    fp.write(f'DISTRIBUTION="{distname}"\n')
-    fp.write(f'BUILDRESULT="{os.path.join(builddir, "pbuilder", "result")}"\n')
-    fp.write(f'APTCACHE="{os.path.join(builddir, "pbuilder", "aptcache")}"\n')
-    fp.write(f'HOOKDIR="{os.path.join(builddir, "pbuilder", "hooks.d")}"\n')
-    fp.write('PATH="/usr/share/elbe/qemu-elbe:$PATH"\n')
+        if xml.text("project/arch", key="arch") != 'amd64':
+            fp.write(f'ARCHITECTURE="{xml.text("project/buildimage/arch", key="arch")}"\n')
+            fp.write('DEBOOTSTRAP="qemu-debootstrap"\n')
+            fp.write('DEBOOTSTRAPOPTS=("${DEBOOTSTRAPOPTS[@]}" '
+                     '"--arch=$ARCHITECTURE")\n')
 
-    if xml.text("project/arch", key="arch") != 'amd64':
-        fp.write(f'ARCHITECTURE="{xml.text("project/buildimage/arch", key="arch")}"\n')
-        fp.write('DEBOOTSTRAP="qemu-debootstrap"\n')
-        fp.write('DEBOOTSTRAPOPTS=("${DEBOOTSTRAPOPTS[@]}" '
-                 '"--arch=$ARCHITECTURE")\n')
+        if xml.prj.has('noauth'):
+            fp.write(
+                'DEBOOTSTRAPOPTS=("${DEBOOTSTRAPOPTS[@]}" "--no-check-gpg")\n')
+            fp.write("""for i in "${!DEBOOTSTRAPOPTS[@]}"; do if [[ ${DEBOOTSTRAPOPTS[i]} == "--force-check-gpg" ]]; then unset 'DEBOOTSTRAPOPTS[i]'; break; fi done\n""")
+            fp.write('export ALLOWUNTRUSTED="yes"\n')
 
-    if xml.prj.has('noauth'):
-        fp.write(
-            'DEBOOTSTRAPOPTS=("${DEBOOTSTRAPOPTS[@]}" "--no-check-gpg")\n')
-        fp.write("""for i in "${!DEBOOTSTRAPOPTS[@]}"; do if [[ ${DEBOOTSTRAPOPTS[i]} == "--force-check-gpg" ]]; then unset 'DEBOOTSTRAPOPTS[i]'; break; fi done\n""")
-        fp.write('export ALLOWUNTRUSTED="yes"\n')
+        # aptitude segfaults with armhf changeroots, great! :)
+        # link: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=834990
+        fp.write('PBUILDERSATISFYDEPENDSCMD='
+                 '/usr/lib/pbuilder/pbuilder-satisfydepends-experimental\n')
 
-    # aptitude segfaults with armhf changeroots, great! :)
-    # link: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=834990
-    fp.write('PBUILDERSATISFYDEPENDSCMD='
-             '/usr/lib/pbuilder/pbuilder-satisfydepends-experimental\n')
-
-    if not noccache:
-        fp.write(f'export CCACHE_DIR="{builddir}/ccache"\n')
-        fp.write('export PATH="/usr/lib/ccache:${PATH}"\n')
-        fp.write('EXTRAPACKAGES=ccache\n')
-        fp.write(f'export CCACHE_CONFIGPATH="{builddir}/ccache/ccache.conf"\n')
-        fp.write('BINDMOUNTS="${CCACHE_DIR}"')
-    fp.close()
+        if not noccache:
+            fp.write(f'export CCACHE_DIR="{builddir}/ccache"\n')
+            fp.write('export PATH="/usr/lib/ccache:${PATH}"\n')
+            fp.write('EXTRAPACKAGES=ccache\n')
+            fp.write(f'export CCACHE_CONFIGPATH="{builddir}/ccache/ccache.conf"\n')
+            fp.write('BINDMOUNTS="${CCACHE_DIR}"')
 
 def pbuilder_write_cross_config(builddir, xml, noccache):
     distname = xml.prj.text('suite')
     pbuilderrc_fname = os.path.join(builddir, "cross_pbuilderrc")
-    fp = open(pbuilderrc_fname, "w")
+    with open(pbuilderrc_fname, "w") as fp:
+        fp.write('#!/bin/sh\n')
+        fp.write('set -e\n')
+        fp.write(f'MIRRORSITE="{xml.get_primary_mirror(False, hostsysroot=True)}"\n')
+        fp.write(f'OTHERMIRROR="deb http://127.0.0.1:8080{builddir}/repo {distname} main"\n')
+        fp.write(f'BASETGZ="{os.path.join(builddir, "pbuilder_cross", "base.tgz")}"\n')
 
-    fp.write('#!/bin/sh\n')
-    fp.write('set -e\n')
-    fp.write(f'MIRRORSITE="{xml.get_primary_mirror(False, hostsysroot=True)}"\n')
-    fp.write(f'OTHERMIRROR="deb http://127.0.0.1:8080{builddir}/repo {distname} main"\n')
-    fp.write(f'BASETGZ="{os.path.join(builddir, "pbuilder_cross", "base.tgz")}"\n')
+        fp.write(f'DISTRIBUTION="{distname}"\n')
 
-    fp.write(f'DISTRIBUTION="{distname}"\n')
+        fp.write(f'BUILDRESULT="{os.path.join(builddir, "pbuilder_cross", "result")}"\n')
+        fp.write(f'APTCACHE="{os.path.join(builddir, "pbuilder_cross", "aptcache")}"\n')
+        fp.write(f'HOOKDIR="{os.path.join(builddir, "pbuilder_cross", "hooks.d")}"\n')
+        fp.write('PBUILDERSATISFYDEPENDSCMD='
+                 '/usr/lib/pbuilder/pbuilder-satisfydepends-apt\n')
 
-    fp.write(f'BUILDRESULT="{os.path.join(builddir, "pbuilder_cross", "result")}"\n')
-    fp.write(f'APTCACHE="{os.path.join(builddir, "pbuilder_cross", "aptcache")}"\n')
-    fp.write(f'HOOKDIR="{os.path.join(builddir, "pbuilder_cross", "hooks.d")}"\n')
-    fp.write('PBUILDERSATISFYDEPENDSCMD='
-             '/usr/lib/pbuilder/pbuilder-satisfydepends-apt\n')
+        if xml.prj.has('noauth'):
+            fp.write(
+                'DEBOOTSTRAPOPTS=("${DEBOOTSTRAPOPTS[@]}" "--no-check-gpg")\n')
+            fp.write("""for i in "${!DEBOOTSTRAPOPTS[@]}"; do if [[ ${DEBOOTSTRAPOPTS[i]} == "--force-check-gpg" ]]; then unset 'DEBOOTSTRAPOPTS[i]'; break; fi done\n""")
+            fp.write('export ALLOWUNTRUSTED="yes"\n')
 
-    if xml.prj.has('noauth'):
-        fp.write(
-            'DEBOOTSTRAPOPTS=("${DEBOOTSTRAPOPTS[@]}" "--no-check-gpg")\n')
-        fp.write("""for i in "${!DEBOOTSTRAPOPTS[@]}"; do if [[ ${DEBOOTSTRAPOPTS[i]} == "--force-check-gpg" ]]; then unset 'DEBOOTSTRAPOPTS[i]'; break; fi done\n""")
-        fp.write('export ALLOWUNTRUSTED="yes"\n')
-
-    if not noccache:
-        fp.write(f'export CCACHE_DIR="{builddir}/ccache"\n')
-        fp.write('export PATH="/usr/lib/ccache:${PATH}"\n')
-        fp.write('EXTRAPACKAGES=ccache\n')
-        fp.write(f'export CCACHE_CONFIGPATH="{builddir}/ccache/ccache.conf"\n')
-        fp.write('BINDMOUNTS="${CCACHE_DIR}"')
-    fp.close()
+        if not noccache:
+            fp.write(f'export CCACHE_DIR="{builddir}/ccache"\n')
+            fp.write('export PATH="/usr/lib/ccache:${PATH}"\n')
+            fp.write('EXTRAPACKAGES=ccache\n')
+            fp.write(f'export CCACHE_CONFIGPATH="{builddir}/ccache/ccache.conf"\n')
+            fp.write('BINDMOUNTS="${CCACHE_DIR}"')
 
 
 def pbuilder_write_apt_conf(builddir, xml):
@@ -97,21 +93,19 @@ def pbuilder_write_apt_conf(builddir, xml):
     # noauth is set
     # create pbuilder/aptconfdir/apt.conf.d/16allowuntrusted
     aptconf_dir = os.path.join(builddir, "aptconfdir", "apt.conf.d")
-    fp = open(os.path.join(aptconf_dir, "16allowuntrusted"), "w")
+    with open(os.path.join(aptconf_dir, "16allowuntrusted"), "w") as fp:
+        # Make apt-get use --force-yes which is not specified by
+        # pbuilder-satisfy-depends
+        fp.write('APT::Get::force-yes "true";\n')
 
-    # Make apt-get use --force-yes which is not specified by
-    # pbuilder-satisfy-depends
-    fp.write('APT::Get::force-yes "true";\n')
+        # Also for safety add this:
+        fp.write('APT::Get::AllowUnauthenticated "true";\n')
 
-    # Also for safety add this:
-    fp.write('APT::Get::AllowUnauthenticated "true";\n')
+        # Force apt-secure to issue only warnings for the unsigned repositories
+        fp.write('Acquire::AllowInsecureRepositories "true";\n')
 
-    # Force apt-secure to issue only warnings for the unsigned repositories
-    fp.write('Acquire::AllowInsecureRepositories "true";\n')
-
-    # Make aptitude install untrusted packages without asking
-    fp.write('Aptitude::CmdLine::Ignore-Trust-Violations "true";\n')
-    fp.close()
+        # Make aptitude install untrusted packages without asking
+        fp.write('Aptitude::CmdLine::Ignore-Trust-Violations "true";\n')
 
 def mirror_script_add_key_url(key_url):
     key_url = key_url.replace("LOCALMACHINE", "10.0.2.2")
@@ -172,7 +166,7 @@ def get_apt_keys(builddir, xml):
             else:
                 options = ""
 
-            if url.has("raw-key") and not "trusted=yes" in options:
+            if url.has("raw-key") and "trusted=yes" not in options:
 
                 key = "\n".join(line.strip(" \t")
                                 for line

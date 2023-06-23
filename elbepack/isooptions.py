@@ -27,13 +27,10 @@ encoding = {
 def iso_option_valid(opt_name, text):
     if opt_name not in iso_options:
         return False
-    str_type = encoding[iso_options[opt_name][3]]
     if len(text) > iso_options[opt_name][1]:
         return len(text) - iso_options[opt_name][1]
-    for c in text:
-        if c not in str_type:
-            return c
-    return True
+    str_type = encoding[iso_options[opt_name][3]]
+    return next((c for c in text if c not in str_type), True)
 
 
 def get_iso_options(xml):

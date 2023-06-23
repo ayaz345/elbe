@@ -19,10 +19,7 @@ class Toolchain:
     def __init__(self, path, arch, triple=None):
         self.path = path
         self.arch = arch
-        if triple:
-            self.triple = triple
-        else:
-            self.triple = arch2triple[arch]
+        self.triple = triple if triple else arch2triple[arch]
 
     def get_fullpath(self, path):
         replace = {"triple": self.triple}

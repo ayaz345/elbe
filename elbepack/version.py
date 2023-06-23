@@ -16,7 +16,4 @@ elbe_initvm_packagelist = ['python3-elbe-buildenv',
                            'elbe-schema',
                            'python3-elbe-bin']
 
-if pack_dir.startswith('/usr/lib/python'):
-    is_devel = False
-else:
-    is_devel = True
+is_devel = not pack_dir.startswith('/usr/lib/python')

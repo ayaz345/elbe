@@ -325,20 +325,10 @@ class AddFileAction(FinetuningAction):
         att = self.node.et.attrib
         dst = att["dst"]
         content = self.node.et.text
-        encoding = "plain"
-        owner = None
-        group = None
-        mode = None
-
-        if "encoding" in att:
-            encoding = att["encoding"]
-        if "owner" in att:
-            owner = att["owner"]
-        if "group" in att:
-            group = att["group"]
-        if "mode" in att:
-            mode = att["mode"]
-
+        encoding = att["encoding"] if "encoding" in att else "plain"
+        owner = att["owner"] if "owner" in att else None
+        group = att["group"] if "group" in att else None
+        mode = att["mode"] if "mode" in att else None
         try:
             target.mkdir_p(os.path.dirname(dst))
         except OSError as E:
@@ -450,7 +440,7 @@ class UpdatedAction(FinetuningAction):
             key = gpgdata.read()
 
             logging.info(str(key))
-            with open((target.path + '/pub.key'), 'wb') as tkey:
+            with open(f'{target.path}/pub.key', 'wb') as tkey:
                 tkey.write(key)
 
             target.mkdir_p("/var/cache/elbe/gnupg", mode=0o700)
@@ -481,14 +471,13 @@ class UpdatedAction(FinetuningAction):
                 except TypeError:
                     logging.exception("Package %s-%s missing name or version",
                                       pkg.name, pkg.installed_version)
-        r = UpdateRepo(target.xml,
-                       target.path + '/var/cache/elbe/repos/base')
+        r = UpdateRepo(target.xml, f'{target.path}/var/cache/elbe/repos/base')
 
         for d in buildenv.rfs.glob('tmp/pkgs/*.deb'):
             r.includedeb(d, 'main')
         r.finalize()
 
-        slist = target.path + '/etc/apt/sources.list.d/base.list'
+        slist = f'{target.path}/etc/apt/sources.list.d/base.list'
         slist_txt = 'deb [trusted=yes] file:///var/cache/elbe/repos/base '
         slist_txt += target.xml.text("/project/suite")
         slist_txt += " main"
@@ -496,7 +485,7 @@ class UpdatedAction(FinetuningAction):
         with open(slist, 'w') as apt_source:
             apt_source.write(slist_txt)
 
-        rmtree(buildenv.rfs.path + '/tmp/pkgs')
+        rmtree(f'{buildenv.rfs.path}/tmp/pkgs')
 
         # allow downgrades by default
         target.touch_file('/var/cache/elbe/.downgrade_allowed')
@@ -509,14 +498,14 @@ class ArtifactAction(FinetuningAction):
         FinetuningAction.__init__(self, node)
 
     def execute(self, _buildenv, target):
-        if os.path.isfile("../target/" + self.node.et.text):
-            target.images.append('target' + self.node.et.text)
+        if os.path.isfile(f"../target/{self.node.et.text}"):
+            target.images.append(f'target{self.node.et.text}')
         else:
             logging.error("The specified artifact: '%s' doesn't exist",
                            self.node.et.text)
 
     def execute_prj(self, _buildenv, target, _builddir):
-        if os.path.isfile("../" + self.node.et.text):
+        if os.path.isfile(f"../{self.node.et.text}"):
             target.images.append(self.node.et.text)
         else:
             logging.error("The specified artifact: '%s' doesn't exist",

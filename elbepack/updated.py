@@ -79,7 +79,7 @@ class UpdateStatus:
             self.set_progress(3, msg_a[0])
 
         if self.step:
-            msg = "(" + str(self.step) + "/3) " + msg
+            msg = f"({str(self.step)}/3) {msg}"
         if self.monitor:
             try:
                 self.monitor.service.msg(msg)
@@ -120,7 +120,7 @@ class UpdateService (ServiceBase):
         lists = os.listdir("/etc/apt/sources.list.d")
 
         for l in lists:
-            snapshots += l[:len(l) - 5] + ","
+            snapshots += f"{l[:len(l) - 5]},"
 
         return snapshots
 
@@ -129,7 +129,7 @@ class UpdateService (ServiceBase):
         if ver == "base_version":
             fname = "/etc/elbe_base.xml"
         else:
-            fname = self.app.status.repo_dir + "/" + ver + "/new.xml"
+            fname = f"{self.app.status.repo_dir}/{ver}/new.xml"
 
         try:
             apply_update(fname, self.app.status)
@@ -217,21 +217,14 @@ class rw_access:
 
 
 def fname_replace(s):
-    allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    allowed += "0123456789"
+    allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" + "0123456789"
     allowed += "_-."
-    res = ""
-    for c in s:
-        if c in allowed:
-            res += c
-        else:
-            res += '_'
-    return res
+    return "".join(c if c in allowed else '_' for c in s)
 
 
 def update_sourceslist(xml, update_dir, status):
     # only create sources list entry if repo is valid
-    if not os.path.isdir(update_dir + '/dists'):
+    if not os.path.isdir(f'{update_dir}/dists'):
         status.log('invalid repository, not added to sources.list')
         return
 
@@ -254,8 +247,7 @@ def mark_install(depcache, pkg, ver, auto, status):
             depcache.mark_install(pkg, False, not auto)
             return
 
-    status.log("ERROR: " + pkg.name + ver +
-               " is not available in the cache")
+    status.log(f"ERROR: {pkg.name}{ver} is not available in the cache")
 
 
 def _apply_update(fname, status):
@@ -301,8 +293,8 @@ def _apply_update(fname, status):
         i = i + 1
         if not i % step:
             percent = percent + 10
-            status.log(str(percent) + "% - " + str(i) + "/" + str(count))
-            status.set_progress(2, str(percent) + "%")
+            status.log(f"{str(percent)}% - {str(i)}/{count}")
+            status.set_progress(2, f"{str(percent)}%")
 
         pkg = cache[p.name]
         marked = False
@@ -326,18 +318,15 @@ def _apply_update(fname, status):
     del cache
     del sources
 
-    version_file = open("/etc/updated_version", "w")
-    version_file.write(xml.text("/project/version"))
-    version_file.close()
+    with open("/etc/updated_version", "w") as version_file:
+        version_file.write(xml.text("/project/version"))
 
 
 def mkdir_p(path):
     try:
         os.makedirs(path)
     except OSError as exc:
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
+        if exc.errno != errno.EEXIST or not os.path.isdir(path):
             raise
 
 
@@ -395,7 +384,7 @@ def reject_downgrade(status, new_xml_file):
     try:
         c_ver = get_current_version()
     except IOError as e:
-        status.log('get current version failed: ' + str(e))
+        status.log(f'get current version failed: {str(e)}')
         c_ver = ""
 
     if is_downgrade(t_ver, c_ver, b_ver) and not is_downgrade_allowed():
@@ -422,7 +411,7 @@ def apply_update(fname, status):
         try:
             c_ver = get_current_version()
         except IOError as e:
-            status.log('get current version failed: ' + str(e))
+            status.log(f'get current version failed: {str(e)}')
             c_ver = ""
 
         pre_sh(c_ver, t_ver, status)
@@ -448,7 +437,7 @@ def action_select(upd_file, status):
     # pylint: disable=too-many-branches
     # pylint: disable=too-many-statements
 
-    status.log("updating: " + upd_file)
+    status.log(f"updating: {upd_file}")
 
     try:
         upd_file_z = ZipFile(upd_file)
@@ -467,16 +456,15 @@ def action_select(upd_file, status):
     try:
         if reject_downgrade(status, "/tmp/new.xml"):
             return
-    # pylint: disable=broad-except
     except Exception as e:
-        status.log('Error while reading XML files occurred: ' + str(e))
+        status.log(f'Error while reading XML files occurred: {str(e)}')
         return
 
     xml = etree("/tmp/new.xml")
-    prefix = status.repo_dir + "/" + fname_replace(xml.text("/project/name"))
+    prefix = f"{status.repo_dir}/" + fname_replace(xml.text("/project/name"))
     prefix += "_" + fname_replace(xml.text("/project/version")) + "/"
 
-    status.log("preparing update: " + prefix)
+    status.log(f"preparing update: {prefix}")
 
     with rw_access(prefix, status):
         for i in upd_file_z.namelist():
@@ -484,75 +472,73 @@ def action_select(upd_file, status):
             try:
                 zi = upd_file_z.getinfo(i)
                 upd_file_z.extract(zi, prefix)
-                os.chmod(prefix + '/' + i, zi.external_attr >> 16)
+                os.chmod(f'{prefix}/{i}', zi.external_attr >> 16)
             except OSError:
                 status.log(f"extraction failed: {sys.exc_info()[1]}")
                 return
 
     with rw_access("/var/cache/elbe", status):
-        if os.path.isfile(prefix + '/' + 'pre.sh'):
+        if os.path.isfile(f'{prefix}/pre.sh'):
             try:
-                copy(prefix + '/' + 'pre.sh', '/var/cache/elbe/' + 'pre.sh')
+                copy(f'{prefix}/pre.sh', '/var/cache/elbe/' + 'pre.sh')
             except (OSError, IOError) as e:
-                status.log('presh-copy failed: ' + str(e))
+                status.log(f'presh-copy failed: {str(e)}')
 
-        if os.path.isfile(prefix + '/' + 'post.sh'):
+        if os.path.isfile(f'{prefix}/post.sh'):
             try:
-                copy(prefix + '/' + 'post.sh', '/var/cache/elbe/' + 'post.sh')
+                copy(f'{prefix}/post.sh', '/var/cache/elbe/' + 'post.sh')
             except (OSError, IOError) as e:
-                status.log('postsh-copy failed: ' + str(e))
+                status.log(f'postsh-copy failed: {str(e)}')
 
-    if os.path.isdir(prefix + "conf"):
+    if os.path.isdir(f"{prefix}conf"):
         status.log("copying config files:")
-        for path, _, filenames in os.walk(prefix + "conf"):
-            dst = path[len(prefix + "conf"):]
+        for path, _, filenames in os.walk(f"{prefix}conf"):
+            dst = path[len(f"{prefix}conf"):]
             with rw_access(dst, status):
                 for f in filenames:
                     src = os.path.join(path, f)
-                    status.log("cp " + src + " " + dst)
+                    status.log(f"cp {src} {dst}")
                     try:
                         mkdir_p(dst)
-                        copyfile(src, dst + '/' + f)
+                        copyfile(src, f'{dst}/{f}')
                     except (OSError, IOError) as e:
-                        status.log('failed: ' + str(e))
-        with rw_access(prefix + "conf", status):
-            rmtree(prefix + "conf")
+                        status.log(f'failed: {str(e)}')
+        with rw_access(f"{prefix}conf", status):
+            rmtree(f"{prefix}conf")
 
-    if os.path.isdir(prefix + "cmd"):
+    if os.path.isdir(f"{prefix}cmd"):
         status.log("executing scripts:")
-        for path, _, filenames in os.walk(prefix + "cmd"):
+        for path, _, filenames in os.walk(f"{prefix}cmd"):
             for f in filenames:
                 cmd = os.path.join(path, f)
                 if os.path.isfile(cmd):
-                    status.log('exec: ' + cmd)
+                    status.log(f'exec: {cmd}')
                     try:
                         execute(cmd, status)
                     except OSError as e:
-                        status.log('exec: ' + cmd + ' - ' + str(e))
-        with rw_access(prefix + "cmd", status):
-            rmtree(prefix + "cmd")
+                        status.log(f'exec: {cmd} - {str(e)}')
+        with rw_access(f"{prefix}cmd", status):
+            rmtree(f"{prefix}cmd")
 
-    if os.path.isdir(prefix + "repo"):
+    if os.path.isdir(f"{prefix}repo"):
         try:
-            update_sourceslist(xml, prefix + "repo", status)
-        # pylint: disable=broad-except
+            update_sourceslist(xml, f"{prefix}repo", status)
         except Exception as err:
             status.log(str(err))
             status.set_finished('error')
-            status.log("update apt sources list failed: " + prefix)
+            status.log(f"update apt sources list failed: {prefix}")
             return
 
         try:
             apply_update("/tmp/new.xml", status)
-        # pylint: disable=broad-except
         except Exception as err:
             status.log(str(err))
             status.set_finished('error')
-            status.log("apply update failed: " + prefix)
+            status.log(f"apply update failed: {prefix}")
             return
 
         status.set_finished('OK')
-        status.log("update done: " + prefix)
+        status.log(f"update done: {prefix}")
 
 
 def is_update_file(upd_file):
@@ -565,10 +551,7 @@ def is_update_file(upd_file):
     except BadZipfile:
         return False
 
-    if "new.xml" not in upd_file_z.namelist():
-        return False
-
-    return True
+    return "new.xml" in upd_file_z.namelist()
 
 
 update_lock = threading.Lock()
@@ -576,7 +559,7 @@ update_lock = threading.Lock()
 
 def handle_update_file(upd_file, status, remove=False):
     with update_lock:
-        status.log("checking file: " + str(upd_file))
+        status.log(f"checking file: {str(upd_file)}")
         _, extension = os.path.splitext(upd_file)
 
         if extension == ".gpg":
@@ -588,14 +571,14 @@ def handle_update_file(upd_file, status, remove=False):
                 if remove:
                     os.remove(fname)
             else:
-                status.log("checking signature failed: " + str(upd_file))
+                status.log(f"checking signature failed: {str(upd_file)}")
 
         elif status.nosign:
             action_select(upd_file, status)
             if remove:
                 os.remove(upd_file)
         else:
-            status.log("ignore file: " + str(upd_file))
+            status.log(f"ignore file: {str(upd_file)}")
 
 
 def shutdown(_signum, _fname, status):

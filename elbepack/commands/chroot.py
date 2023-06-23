@@ -55,11 +55,8 @@ def run_command(argv):
         cmd = "/bin/bash"
 
         if len(args) > 1:
-            cmd = ""
             cmd2 = args[1:]
-            for c in cmd2:
-                cmd += (c + " ")
-
+            cmd = "".join(f"{c} " for c in cmd2)
         if opt.target:
             try:
                 with project.targetfs:

@@ -38,11 +38,11 @@ class license_dep5_to_spdx (dict):
                 self.perpackage_mapping[pname] = {}
                 self.perpackage_override[pname] = []
                 for pp in pkg:
-                    if pp.tag == 'mapping':
-                        self.perpackage_mapping[pname][pp.et.attrib['name']
-                                                       ] = pp.et.text
                     if pp.tag == 'license':
                         self.perpackage_override[pname].append(pp.et.text)
+                    elif pp.tag == 'mapping':
+                        self.perpackage_mapping[pname][pp.et.attrib['name']
+                                                       ] = pp.et.text
 
     def have_override(self, pkgname):
         return pkgname in self.perpackage_override
@@ -75,8 +75,7 @@ class license_dep5_to_spdx (dict):
                     ands.append(mapped_lic)
             ors.append(' AND '.join(ands))
 
-        retval = ' OR '.join(ors)
-        return retval
+        return ' OR '.join(ors)
 
     def map_lic(self, pkgname, licenses, errors):
         if pkgname in self.perpackage_override:
@@ -115,7 +114,7 @@ def license_string(pkg):
     l_list = []
     for ll in pkg.node('spdx_licenses'):
         if ll.et.text.find(' OR ') != -1:
-            l_list.append('(' + ll.et.text + ')')
+            l_list.append(f'({ll.et.text})')
         else:
             l_list.append(ll.et.text)
 
@@ -209,19 +208,18 @@ def run_command(argv):
 
             if not mapped_lics:
                 errors.append(f'empty mapped licenses in package "{pkg_name}"')
-        else:
-            if not mapping.have_override(pkg_name):
-                errors.append(
-                    'no debian_licenses and no override in package '
-                    f'"{pkg_name}"')
-            else:
-                sp = pkg.ensure_child('spdx_licenses')
-                sp.clear()
-                sp.et.text = '\n'
-                for l in mapping.get_override(pkg_name):
-                    ll = sp.append('license')
-                    ll.et.text = l
+        elif mapping.have_override(pkg_name):
+            sp = pkg.ensure_child('spdx_licenses')
+            sp.clear()
+            sp.et.text = '\n'
+            for l in mapping.get_override(pkg_name):
+                ll = sp.append('license')
+                ll.et.text = l
 
+        else:
+            errors.append(
+                'no debian_licenses and no override in package '
+                f'"{pkg_name}"')
         if opt.use_nomos:
             nomos_l = scan_nomos(pkg.text('text'))
             if nomos_l[0] != 'No_license_found':

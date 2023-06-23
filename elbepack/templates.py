@@ -31,9 +31,8 @@ def template(fname, d, linebreak=False):
 
 
 def write_template(outname, fname, d, linebreak=False):
-    outfile = open(outname, "w")
-    outfile.write(template(fname, d, linebreak))
-    outfile.close()
+    with open(outname, "w") as outfile:
+        outfile.write(template(fname, d, linebreak))
 
 
 def write_pack_template(outname, fname, d, linebreak=False):
@@ -87,8 +86,4 @@ def get_initvm_preseed(xml):
 
 
 def preseed_to_text(pres):
-    retval = ""
-    for k, v in pres.items():
-        retval += f"{k[0]}\t{k[1]}\t{v[0]}\t{v[1]}\n"
-
-    return retval
+    return "".join(f"{k[0]}\t{k[1]}\t{v[0]}\t{v[1]}\n" for k, v in pres.items())

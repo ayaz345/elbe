@@ -225,24 +225,23 @@ class ElbeProject:
     def get_sysroot_paths(self):
         triplet = self.xml.defs["triplet"]
 
-        paths = [
+        return [
             './usr/include',
-            './usr/include/' + triplet,
+            f'./usr/include/{triplet}',
             './etc/ld.so.conf*',
             './opt/*/lib/*.so',
             './opt/*lib/*.so.*',
             './opt/*/include',
-            './opt/*/lib/' + triplet,
-            './opt/*/include/' + triplet,
+            f'./opt/*/lib/{triplet}',
+            f'./opt/*/include/{triplet}',
             './lib/*.so',
             './lib/*.so.*',
-            './lib/' + triplet,
+            f'./lib/{triplet}',
             './usr/lib/debug/.build-id/*/*.debug',
             './usr/lib/*.so',
             './usr/lib/*.so.*',
-            './usr/lib/' + triplet]
-
-        return paths
+            f'./usr/lib/{triplet}',
+        ]
 
     def build_sysroot(self):
 
@@ -304,7 +303,7 @@ class ElbeProject:
         for p in paths:
             do(f'find -path "{p}" >> {sysrootfilelist}')
         # include /lib if it is a symlink (buster and later)
-        if os.path.islink(self.sysrootpath + '/lib'):
+        if os.path.islink(f'{self.sysrootpath}/lib'):
             with open(sysrootfilelist, 'a') as filelist_fd:
                 filelist_fd.write('./lib')
 
@@ -377,9 +376,11 @@ class ElbeProject:
 
         host_pkglist = []
         if self.xml.tgt.has('hostsdk-pkg-list'):
-            for p in self.xml.tgt.node('hostsdk-pkg-list'):
-                if p.tag == 'pkg':
-                    host_pkglist.append(p.et.text.strip())
+            host_pkglist.extend(
+                p.et.text.strip()
+                for p in self.xml.tgt.node('hostsdk-pkg-list')
+                if p.tag == 'pkg'
+            )
         else:
             try:
                 host_pkglist.append(self.xml.defs["sdkgccpkg"])
@@ -660,7 +661,7 @@ class ElbeProject:
         if self.get_rpcaptcache().is_installed(f'grub-efi-{grub_arch}-bin'):
             grub_version = 202
             grub_tgt = "x86_64" if self.arch == "amd64" else self.arch
-            grub_fw_type.extend(["efi", grub_tgt + "-efi"])
+            grub_fw_type.extend(["efi", f"{grub_tgt}-efi"])
         if (self.get_rpcaptcache().is_installed('shim-signed') and
                 self.get_rpcaptcache().is_installed(
                     f'grub-efi-{grub_arch}-signed')):
@@ -755,12 +756,7 @@ class ElbeProject:
         # this might be useful, when things like java dont
         # work with multithreading
         #
-        if cpuset != -1:
-            cpuset_cmd = f'taskset {cpuset} '
-        else:
-            # cpuset == -1 means empty cpuset_cmd
-            cpuset_cmd = ''
-
+        cpuset_cmd = f'taskset {cpuset} ' if cpuset != -1 else ''
         profile_list = profile.split(",")
         deb_build_opts = [i for i in profile_list if i in ("nodoc", "nocheck")]
 
@@ -853,10 +849,8 @@ class ElbeProject:
             ccache_path = os.path.join(self.builddir, "ccache")
             do(f'mkdir -p "{ccache_path}"')
             do(f'chmod a+w "{ccache_path}"')
-            ccache_fp = open(os.path.join(ccache_path, "ccache.conf"), "w")
-            ccache_fp.write(f"max_size = {ccachesize}")
-            ccache_fp.close()
-
+            with open(os.path.join(ccache_path, "ccache.conf"), "w") as ccache_fp:
+                ccache_fp.write(f"max_size = {ccachesize}")
         # write config files
         if cross:
             pbuilder_write_cross_config(self.builddir, self.xml, noccache)
@@ -900,11 +894,7 @@ class ElbeProject:
         if norecommend is None:
             norecommend = not self.xml.prj.has('install-recommends')
 
-        if env.arch == "default":
-            arch = self.arch
-        else:
-            arch = env.arch
-
+        arch = self.arch if env.arch == "default" else env.arch
         if env.rpcaptcache is None:
             env.rpcaptcache = get_rpcaptcache(env.rfs, arch,
                                               self.rpcaptcache_notifier,
@@ -1048,12 +1038,7 @@ class ElbeProject:
             if not buildenv:
                 target.seed_etc()
 
-            # remove all non-essential packages to ensure that on a incremental
-            # build packages can be removed
-            debootstrap_pkgs = []
-            for p in self.xml.node("debootstrappkgs"):
-                debootstrap_pkgs.append(p.et.text)
-
+            debootstrap_pkgs = [p.et.text for p in self.xml.node("debootstrappkgs")]
             pkgs = target.xml.get_target_packages() + debootstrap_pkgs
 
             if buildenv:

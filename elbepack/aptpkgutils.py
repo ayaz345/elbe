@@ -83,19 +83,15 @@ def pkgstate(pkg):
         return MARKED_DELETE
     if pkg.is_upgradable:
         return UPGRADABLE
-    if pkg.is_installed:
-        return INSTALLED
-    return NOTINSTALLED
+    return INSTALLED if pkg.is_installed else NOTINSTALLED
 
 
 def pkgorigin(pkg):
     if pkg.installed:
         o = pkg.installed.origins[0]
-        origin = f"{o.site} {o.archive} {o.component}"
+        return f"{o.site} {o.archive} {o.component}"
     else:
-        origin = None
-
-    return origin
+        return None
 
 def _file_is_same(path, size, sha256):
     # type: (str, int, str) -> bool
@@ -136,12 +132,14 @@ def fetch_binary(version, destdir='', progress=None):
         return os.path.abspath(destfile)
     acq = apt_pkg.Acquire(progress or apt.progress.text.AcquireProgress())
     # pylint: disable=protected-access
-    acqfile = apt_pkg.AcquireFile(acq,
-                                  version.uri,
-                                  "SHA256:" + version._records.sha256_hash,
-                                  version.size,
-                                  base,
-                                  destfile=destfile)
+    acqfile = apt_pkg.AcquireFile(
+        acq,
+        version.uri,
+        f"SHA256:{version._records.sha256_hash}",
+        version.size,
+        base,
+        destfile=destfile,
+    )
     acq.run()
 
     if acqfile.status != acqfile.STAT_DONE:
@@ -209,8 +207,9 @@ class APTPackage(PackageBase):
 
         if pkg.installed:
             arch = pkg.installed.architecture
-            self.installed_deb = pkg.name + '_' + iver.replace(':', '%3a') + \
-                '_' + arch + '.deb'
+            self.installed_deb = (
+                (f'{pkg.name}_' + iver.replace(':', '%3a') + '_') + arch
+            ) + '.deb'
         elif pkg.candidate:
             arch = pkg.candidate.architecture
             self.installed_deb = None

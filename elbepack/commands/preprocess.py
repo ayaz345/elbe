@@ -37,10 +37,7 @@ def run_command(argv):
         print(f"{args[0]} doesn't exist", file=sys.stderr)
         sys.exit(20)
 
-    variants = []
-    if opt.variant:
-        variants = opt.variant.split(',')
-
+    variants = opt.variant.split(',') if opt.variant else []
     try:
         xmlpreprocess(args[0], opt.output, variants, opt.proxy)
     except XMLPreprocessError as e:

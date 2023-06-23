@@ -71,8 +71,7 @@ def preprocess_bootstrap(xml):
     bootstrap_variant.text = old_node.text
     bootstrap.append(bootstrap_variant)
 
-    old_includepkgs = old_node.get("includepkgs")
-    if old_includepkgs:
+    if old_includepkgs := old_node.get("includepkgs"):
         bootstrap_include = Element("include")
         bootstrap_include.text = old_includepkgs
         bootstrap.append(bootstrap_include)
@@ -253,10 +252,10 @@ def preprocess_mirrors(xml):
                 continue
 
             # arch=amd64
-            opt = m.group(1)
+            opt = m[1]
 
             # http://LOCALMACHINE/something
-            node.text = m.group(2)
+            node.text = m[2]
 
             # No <options>? Create it
             parent  = node.getparent()
@@ -308,11 +307,7 @@ def xmlpreprocess(xml_input_file, xml_output_file, variants=None, proxy=None):
     # pylint: disable=too-many-branches
 
     # first convert variants to a set
-    if not variants:
-        variants = set([])
-    else:
-        variants = set(variants)
-
+    variants = set([]) if not variants else set(variants)
     schema_file = "https://www.linutronix.de/projects/Elbe/dbsfed.xsd"
     parser = XMLParser(huge_tree=True)
     schema_tree = etree.parse(schema_file)
@@ -330,11 +325,7 @@ def xmlpreprocess(xml_input_file, xml_output_file, variants=None, proxy=None):
             if 'variant' in tag.attrib:
                 tag_variants = set(tag.attrib['variant'].split(','))
 
-                # check if tag_variants intersects with
-                # active variants.
-                intersect = variants.intersection(tag_variants)
-
-                if intersect:
+                if intersect := variants.intersection(tag_variants):
                     # variant is wanted, keep it and remove the variant
                     # attribute
                     tag.attrib.pop('variant')

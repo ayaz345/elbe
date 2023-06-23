@@ -30,7 +30,7 @@ def get_mtdnum(xml, label):
             if v.text("label") == label:
                 return i.text("nr")
 
-    raise Exception("No ubi volume with label " + label + " found")
+    raise Exception(f"No ubi volume with label {label} found")
 
 
 def get_devicelabel(xml, node):
@@ -156,7 +156,5 @@ class fstabentry(hdpart):
 
     def get_label_opt(self):
         if self.fstype in ("ext4", "ext3", "ext2", "btrfs"):
-            return "-L " + self.label
-        if self.fstype == "vfat":
-            return "-n " + self.label
-        return ""
+            return f"-L {self.label}"
+        return f"-n {self.label}" if self.fstype == "vfat" else ""

@@ -30,7 +30,7 @@ def mkfs_mtd(mtd, fslabel, target):
 
     ubivg = mtd.node("ubivg")
     for v in ubivg:
-        if not v.tag == "ubi":
+        if v.tag != "ubi":
             continue
 
         if v.has("empty"):
@@ -72,21 +72,24 @@ def build_image_mtd(mtd, target):
     ubivg = mtd.node("ubivg")
 
     cfgfilename = f"{mtd.text('name')}_{mtd.node('ubivg').text('label')}.cfg"
-    fp = open(os.path.join(target, cfgfilename), "w")
+    with open(os.path.join(target, cfgfilename), "w") as fp:
+        for vol in mtd.node("ubivg"):
+            if vol.has("label"):
+                fp.write(f"[{vol.text('label')}]\n")
+                fp.write("mode=ubi\n")
+                if vol.has("empty"):
+                    with open("/tmp/empty", "w") as empt:
+                        empt.write("EMPTY")
+                    fp.write("image=/tmp/empty\n")
 
-    for vol in mtd.node("ubivg"):
-        if vol.has("label"):
-            fp.write(f"[{vol.text('label')}]\n")
-            fp.write("mode=ubi\n")
-            if not vol.has("empty"):
-                if vol.has("binary"):
+                elif vol.has("binary"):
                     tmp = ""
                     # copy from buildenv if path starts with /
-                    if vol.text("binary")[0] == '/':
-                        tmp = target + "/" + "chroot" + vol.text("binary")
-                    # copy from project directory
-                    else:
-                        tmp = target + "/" + vol.text("binary")
+                    tmp = (
+                        f"{target}/chroot" + vol.text("binary")
+                        if vol.text("binary")[0] == '/'
+                        else f"{target}/" + vol.text("binary")
+                    )
                     do(f"cp {tmp} {target}/{vol.text('label')}.ubibin")
                     img_files.append(vol.text("label") + ".ubibin")
                     fp.write(
@@ -94,28 +97,16 @@ def build_image_mtd(mtd, target):
                 else:
                     fp.write(
                         f"image={os.path.join(target, vol.text('label'))}.ubifs\n")
-            else:
-                empt = open("/tmp/empty", "w")
-                empt.write("EMPTY")
-                empt.close()
-                fp.write("image=/tmp/empty\n")
+                fp.write(f"vol_type={vol.text('type')}\n")
+                fp.write(f"vol_id={vol.text('id')}\n")
+                fp.write(f"vol_name={vol.text('label')}\n")
 
-            fp.write(f"vol_type={vol.text('type')}\n")
-            fp.write(f"vol_id={vol.text('id')}\n")
-            fp.write(f"vol_name={vol.text('label')}\n")
+                if vol.text("size") != "remain":
+                    fp.write(f"vol_size={size_to_int(vol.text('size'))}\n")
+                else:
+                    fp.write("vol_flags=autoresize\n")
 
-            if vol.text("size") != "remain":
-                fp.write(f"vol_size={size_to_int(vol.text('size'))}\n")
-            else:
-                fp.write("vol_flags=autoresize\n")
-
-    fp.close()
-
-    if ubivg.has("subpagesize"):
-        subp = "-s " + ubivg.text("subpagesize")
-    else:
-        subp = ""
-
+    subp = "-s " + ubivg.text("subpagesize") if ubivg.has("subpagesize") else ""
     try:
         do(
             f"ubinize {subp} "
@@ -163,7 +154,7 @@ class grubinstaller202(grubinstaller_base):
         try:
             loopdev = self.losetup(self.fs['/'].filename)
             loopnum = loopdev.replace("/dev/loop", "")
-            poopdev = "/dev/poop" + loopnum
+            poopdev = f"/dev/poop{loopnum}"
 
             do(f'cp -a {loopdev} {poopdev}')
             do(f'kpartx -as {poopdev}')
@@ -180,10 +171,8 @@ class grubinstaller202(grubinstaller_base):
 
             do(f'mkdir -p "{imagemntfs.fname("boot/grub")}"')
 
-            devmap = open(imagemntfs.fname("boot/grub/device.map"), "w")
-            devmap.write(f"(hd0) {poopdev}\n")
-            devmap.close()
-
+            with open(imagemntfs.fname("boot/grub/device.map"), "w") as devmap:
+                devmap.write(f"(hd0) {poopdev}\n")
             chroot(imagemnt, "update-grub2")
 
             if "efi" in self.fw_type:
@@ -235,7 +224,7 @@ class grubinstaller97(grubinstaller_base):
         try:
             loopdev = self.losetup(self.fs['/'].filename)
             loopnum = loopdev.replace("/dev/loop", "")
-            poopdev = "/dev/poop" + loopnum
+            poopdev = f"/dev/poop{loopnum}"
 
             do(f'cp -a {loopdev} {poopdev}')
             do(f'kpartx -as {poopdev}')
@@ -261,10 +250,8 @@ class grubinstaller97(grubinstaller_base):
 
             do(f'mkdir -p "{imagemntfs.fname("boot/grub")}"')
 
-            devmap = open(imagemntfs.fname("boot/grub/device.map"), "w")
-            devmap.write(f"(hd0) {poopdev}\n")
-            devmap.close()
-
+            with open(imagemntfs.fname("boot/grub/device.map"), "w") as devmap:
+                devmap.write(f"(hd0) {poopdev}\n")
             # Replace groot and kopt because else they will be given
             # bad values
             #
@@ -310,14 +297,14 @@ def create_partition(
         size_in_sectors,
         current_sector):
 
-    # pylint: disable=too-many-arguments
-
-    sector_size = 512
     if part.text("size") == "remain" and disk.type == "gpt":
         sz = size_in_sectors - 35 - current_sector
     elif part.text("size") == "remain":
         sz = size_in_sectors - current_sector
     else:
+        # pylint: disable=too-many-arguments
+
+        sector_size = 512
         sz = size_to_int(part.text("size")) // sector_size
 
     g = parted.Geometry(device=disk.device, start=current_sector, length=sz)
@@ -402,10 +389,9 @@ def create_binary(disk, part, ppart, target):
     try:
         # copy from buildenv if path starts with /
         if part.text("binary")[0] == '/':
-            tmp = target + "/" + "chroot" + part.text("binary")
-        # copy from project directory
+            tmp = f"{target}/chroot" + part.text("binary")
         else:
-            tmp = target + "/" + part.text("binary")
+            tmp = f"{target}/" + part.text("binary")
 
         do(f'dd if="{tmp}" of="{loopdev}"')
     finally:
@@ -455,10 +441,8 @@ def do_image_hd(hd, fslabel, target, grub_version, grub_fw_type=None):
 
     imagename = os.path.join(target, hd.text("name"))
     do(f'rm -f "{imagename}"', allow_fail=True)
-    f = open(imagename, "wb")
-    f.truncate(size_in_sectors * sector_size)
-    f.close()
-
+    with open(imagename, "wb") as f:
+        f.truncate(size_in_sectors * sector_size)
     imag = parted.Device(imagename)
     if hd.tag == "gpthd":
         disk = parted.freshDisk(imag, "gpt")
@@ -635,7 +619,7 @@ def do_hdimg(xml, target, rfs, grub_version, grub_fw_type=None):
 
     # dd binary blobs onto images
     for i in xml.tgt.node("images"):
-        if (i.tag == "msdoshd") or (i.tag == "gpthd"):
+        if i.tag in ["msdoshd", "gpthd"]:
             add_binary_blob(i, target)
 
     # use set() to remove duplicates, but

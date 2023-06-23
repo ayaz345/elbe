@@ -67,11 +67,7 @@ def run_command(argv):
         print("No output file specified")
         sys.exit(20)
 
-    if opt.buildtype:
-        buildtype = opt.buildtype
-    else:
-        buildtype = None
-
+    buildtype = opt.buildtype if opt.buildtype else None
     with elbe_logging({"streams":sys.stdout}):
         try:
             project = ElbeProject(opt.target, name=opt.name,
@@ -93,10 +89,7 @@ def run_command(argv):
             sys.exit(20)
         project.postsh_file = opt.postsh_file
 
-    update_xml = None
-    if len(args) >= 1:
-        update_xml = args[0]
-
+    update_xml = args[0] if len(args) >= 1 else None
     with elbe_logging({"projects":project.builddir}):
         try:
             gen_update_pkg(project, update_xml, opt.output, buildtype,

@@ -47,7 +47,7 @@ def system(cmd, allow_fail=False, env_add=None):
     """
     new_env = os.environ.copy()
     if env_add:
-        new_env.update(env_add)
+        new_env |= env_add
 
     ret = call(cmd, shell=True, env=new_env)
 
@@ -84,7 +84,7 @@ def command_out(cmd, stdin=None, output=PIPE, env_add=None):
     """
     new_env = os.environ.copy()
     if env_add:
-        new_env.update(env_add)
+        new_env |= env_add
 
     if isinstance(stdin, str):
         stdin = stdin.encode()
@@ -151,7 +151,7 @@ def command_out_stderr(cmd, stdin=None, env_add=None):
     """
     new_env = os.environ.copy()
     if env_add:
-        new_env.update(env_add)
+        new_env |= env_add
 
     if isinstance(stdin, str):
         stdin = stdin.encode()
@@ -236,7 +236,7 @@ def do(cmd, allow_fail=False, stdin=None, env_add=None):
 
     new_env = os.environ.copy()
     if env_add:
-        new_env.update(env_add)
+        new_env |= env_add
 
     if isinstance(stdin, str):
         stdin = stdin.encode()
@@ -279,7 +279,7 @@ def chroot(directory, cmd, env_add=None, **kwargs):
                "LANGUAGE":"C",
                "LC_ALL":"C"}
     if env_add:
-        new_env.update(env_add)
+        new_env |= env_add
     do(f"chroot {directory} {cmd}", env_add=new_env, **kwargs)
 
 def get_command_out(cmd, stdin=None, allow_fail=False, env_add=None):
@@ -314,7 +314,7 @@ def get_command_out(cmd, stdin=None, allow_fail=False, env_add=None):
     new_env = os.environ.copy()
 
     if env_add:
-        new_env.update(env_add)
+        new_env |= env_add
 
     if isinstance(stdin, str):
         stdin = stdin.encode()

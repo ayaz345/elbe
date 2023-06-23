@@ -44,9 +44,7 @@ def copy_filelist(src, file_lst, dst):
             files.add(parts)
             parts, _ = os.path.split(parts)
 
-    # Start from closest to root first
-    files = list(files)
-    files.sort()
+    files = sorted(files)
     files.reverse()
 
     while files:
@@ -69,10 +67,7 @@ def copy_filelist(src, file_lst, dst):
             # Not that this will result in an infinite loop for
             # circular symlinks
             if not dst.lexists(tgt):
-                if not os.path.isabs(tgt):
-                    lst = [os.path.join(os.path.dirname(f), tgt)]
-                else:
-                    lst = [tgt]
+                lst = [tgt] if os.path.isabs(tgt) else [os.path.join(os.path.dirname(f), tgt)]
                 copy_filelist(src, lst, dst)
 
             dst.symlink(tgt, f, allow_exists=True)
@@ -205,8 +200,7 @@ class ElbeFilesystem(Filesystem):
                 except IOError as e:
                     logging.exception("Error while processing license file %s",
                                     copyright_fname)
-                    lic_text = u"Error while processing license file %s: '%s'" % (
-                        copyright_file, e.strerror)
+                    lic_text = f"Error while processing license file {copyright_file}: '{e.strerror}'"
             else:
                 logging.warning("License file does not exist, skipping %s",
                                   copyright_fname)
@@ -273,10 +267,7 @@ class Excursion:
             save_to = self._saved_to()
             system(f"mv {rfs.fname(self.origin)} {rfs.fname(save_to)}")
         if os.path.exists(self.origin):
-            if self.dst is not None:
-                dst = self.dst
-            else:
-                dst = self.origin
+            dst = self.dst if self.dst is not None else self.origin
             system(f"cp {self.origin} {rfs.fname(dst)}")
 
     # This should be a method of rfs
@@ -318,9 +309,9 @@ class ChRootFilesystem(ElbeFilesystem):
                 if self.islink("usr/bin"):
                     Excursion.add(self, "/usr/bin")
 
-            ui = "/usr/share/elbe/qemu-elbe/" + self.interpreter
+            ui = f"/usr/share/elbe/qemu-elbe/{self.interpreter}"
             if not os.path.exists(ui):
-                ui = "/usr/bin/" + self.interpreter
+                ui = f"/usr/bin/{self.interpreter}"
 
             Excursion.add(self, ui, False, "/usr/bin")
 
@@ -490,8 +481,7 @@ class TargetFs(ChRootFilesystem):
     def pack_images(self, builddir):
         for img, packer in self.image_packers.items():
             self.images.remove(img)
-            packed = packer.pack_file(builddir, img)
-            if packed:
+            if packed := packer.pack_file(builddir, img):
                 self.images.append(packed)
 
 

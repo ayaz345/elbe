@@ -28,12 +28,11 @@ class TestPreproc(ElbeTestCase):
         try:
             system(f'{sys.executable} {elbe_exe} preprocess "{self.param}"')
         except ElbeTestException as e:
-            if self.param in TestPreproc.failure_set:
-                self.stdout = e.out
-                self.skipTest(
-                    f"Preproc test for {self.param} is expected to fail")
-            else:
+            if self.param not in TestPreproc.failure_set:
                 raise
+            self.stdout = e.out
+            self.skipTest(
+                f"Preproc test for {self.param} is expected to fail")
         else:
             if self.param in TestPreproc.failure_set:
                 raise Exception(f"Preproc test for {self.param} is expected to fail, but did not !")

@@ -81,15 +81,15 @@ def extract_pkg_changelog(fname, extra_pkg=None):
     pkgname = os.path.basename(fname)
     m = re.match(re_pkgfilename, pkgname)
 
-    pkgname = m.group('name')
-    pkgarch = m.group('arch')
+    pkgname = m['name']
+    pkgarch = m['arch']
 
     print(f"pkg: {pkgname}, arch: {pkgarch}")
 
     fs = TmpdirFilesystem()
 
     if extra_pkg:
-        print('with extra ' + extra_pkg)
+        print(f'with extra {extra_pkg}')
         system(f'dpkg -x "{extra_pkg}" "{fs.fname("/")}"')
 
     system(f'dpkg -x "{fname}" "{fs.fname("/")}"')

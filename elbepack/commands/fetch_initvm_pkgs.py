@@ -79,7 +79,7 @@ def run_command(argv):
     try:
         xml = ElbeXML(args[0], skip_validate=opt.skip_validation)
     except ValidationError as e:
-        print(str(e))
+        print(e)
         print("xml validation failed. Bailing out")
         sys.exit(20)
 

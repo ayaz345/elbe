@@ -33,7 +33,7 @@ class MonitorThread (threading.Thread):
         self.server = None
 
     def run(self):
-        print("monitor ready :%s" % (self.port))
+        print(f"monitor ready :{self.port}")
         application = Application([MonitorService], 'monitor',
                                   in_protocol=Soap11(validator='lxml'),
                                   out_protocol=Soap11())
@@ -74,7 +74,7 @@ if opt.debug:
     logging.basicConfig(level=logging.INFO)
     logging.getLogger('suds.client').setLevel(logging.DEBUG)
 
-wsdl = "http://" + opt.target + ":" + opt.port + "/?wsdl"
+wsdl = f"http://{opt.target}:{opt.port}/?wsdl"
 try:
     control = Client(wsdl)
 except BaseException:
@@ -87,7 +87,7 @@ monitor.start()
 time.sleep(1)  # hack to ensure that monitor server was started
 
 try:
-    monitor_wsdl = "http://" + opt.host + ":" + opt.monitorport + "/?wsdl"
+    monitor_wsdl = f"http://{opt.host}:{opt.monitorport}/?wsdl"
     control.service.register_monitor(monitor_wsdl)
 except BaseException:
     print("monitor couldn't be registered (port already in use?)")

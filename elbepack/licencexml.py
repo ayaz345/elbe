@@ -30,17 +30,11 @@ def do_heuristics(fp):
             lic_para = LicenseParagraph(data)
             c.add_license_paragraph(lic_para)
 
-    if num_licenses > 0:
-        return c
-
-    return None
+    return c if num_licenses > 0 else None
 
 
 def get_heuristics_license_list(c):
-    licenses = []
-    for cc in c.all_license_paragraphs():
-        licenses.append(cc.license.synopsis)
-
+    licenses = [cc.license.synopsis for cc in c.all_license_paragraphs()]
     return set(licenses)
 
 class copyright_xml:
@@ -69,12 +63,10 @@ class copyright_xml:
         try:
             c = Copyright(bytesio, strict=True)
 
-            files = []
-
-            # Note!  Getters of cc can throw nasty exceptions!
-            for cc in c.all_files_paragraphs():
-                files.append((cc.files, cc.license.synopsis, cc.copyright))
-
+            files = [
+                (cc.files, cc.license.synopsis, cc.copyright)
+                for cc in c.all_files_paragraphs()
+            ]
         except (NotMachineReadableError, MachineReadableFormatError) as E:
             logging.warning("Error in copyright of package '%s': %s", pkg_name, E)
         except Warning as W:

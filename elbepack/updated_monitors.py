@@ -35,32 +35,34 @@ class USBMonitor (UpdateMonitor):
             self.monitor, self.handle_event)
 
     def handle_event(self, action, device):
-        if (action == 'add'
-            and device.get('ID_BUS') == 'usb'
-                and device.get('DEVTYPE') == 'partition'):
+        if (
+            action != 'add'
+            or device.get('ID_BUS') != 'usb'
+            or device.get('DEVTYPE') != 'partition'
+        ):
+            return
+        mnt = self.get_mountpoint_for_device(device.device_node)
+        if not mnt:
+            self.status.log(
+                "Detected USB drive but it was not mounted.")
+            return
 
-            mnt = self.get_mountpoint_for_device(device.device_node)
-            if not mnt:
-                self.status.log(
-                    "Detected USB drive but it was not mounted.")
-                return
-
-            for (dirpath, dirnames, filenames) in os.walk(mnt):
-                # Make sure we process the files in alphabetical order
-                # to get a deterministic behaviour
-                dirnames.sort()
-                filenames.sort()
-                for f in filenames:
-                    upd_file = os.path.join(dirpath, f)
-                    if is_update_file(upd_file):
-                        self.status.log(
-                            f"Found update file '{upd_file}' on USB-Device.")
-                        handle_update_file(
-                            upd_file, self.status, remove=False)
-                    if self.status.stop:
-                        break
-                if (not self.recursive) or self.status.stop:
+        for (dirpath, dirnames, filenames) in os.walk(mnt):
+            # Make sure we process the files in alphabetical order
+            # to get a deterministic behaviour
+            dirnames.sort()
+            filenames.sort()
+            for f in filenames:
+                upd_file = os.path.join(dirpath, f)
+                if is_update_file(upd_file):
+                    self.status.log(
+                        f"Found update file '{upd_file}' on USB-Device.")
+                    handle_update_file(
+                        upd_file, self.status, remove=False)
+                if self.status.stop:
                     break
+            if (not self.recursive) or self.status.stop:
+                break
 
     def start(self):
         self.status.log("monitoring USB")

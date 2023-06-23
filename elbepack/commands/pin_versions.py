@@ -28,8 +28,7 @@ def run_command(argv):
         sys.exit(20)
 
     if not opt.skip_validation:
-        validation = validate_xml(args[0])
-        if validation:
+        if validation := validate_xml(args[0]):
             print("xml validation failed. Bailing out")
             for i in validation:
                 print(i)

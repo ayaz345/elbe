@@ -64,9 +64,7 @@ class CreateAction(PBuilderAction):
         PBuilderAction.__init__(self, node)
 
     def execute(self, opt, _args):
-        crossopt = ""
-        if opt.cross:
-            crossopt = "--cross"
+        crossopt = "--cross" if opt.cross else ""
         if opt.noccache:
             ccacheopt = "--no-ccache"
             ccachesize = ""
@@ -103,10 +101,8 @@ class CreateAction(PBuilderAction):
                 sys.exit(20)
 
             if opt.writeproject:
-                wpf = open(opt.writeproject, "w")
-                wpf.write(prjdir)
-                wpf.close()
-
+                with open(opt.writeproject, "w") as wpf:
+                    wpf.write(prjdir)
         elif opt.project:
             prjdir = opt.project
         else:
@@ -178,12 +174,7 @@ class BuildAction(PBuilderAction):
 
     def execute(self, opt, _args):
 
-        # pylint: disable=too-many-statements
-        # pylint: disable=too-many-branches
-
-        crossopt = ""
-        if opt.cross:
-            crossopt = "--cross"
+        crossopt = "--cross" if opt.cross else ""
         tmp = TmpdirFilesystem()
 
         if opt.xmlfile:

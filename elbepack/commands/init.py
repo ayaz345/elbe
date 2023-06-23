@@ -98,15 +98,14 @@ def run_command(argv):
         sys.exit(20)
 
     with elbe_logging({"files": None}):
-        if opt.devel:
-            if not os.path.isdir(os.path.join(elbe_dir, "elbepack")):
+        if not os.path.isdir(os.path.join(elbe_dir, "elbepack")):
+            if opt.devel:
                 logging.error("Devel Mode only valid, "
                               "when running from elbe checkout")
                 sys.exit(20)
 
-        if not opt.skip_validation:
-            validation = validate_xml(args[0])
-            if validation:
+        if validation := validate_xml(args[0]):
+            if not opt.skip_validation:
                 logging.error("xml validation failed. Bailing out")
                 for i in validation:
                     logging.error(i)
@@ -212,10 +211,10 @@ def run_command(argv):
                         os.path.join(out_path, "source.xml"))
 
 
-        keys = []
-        for key in xml.all(".//initvm/mirror/url-list/url/raw-key"):
-            keys.append(key.et.text)
-
+        keys = [
+            key.et.text
+            for key in xml.all(".//initvm/mirror/url-list/url/raw-key")
+        ]
         if opt.cdrom:
             keys.append(system_out(f'7z x -so "{opt.cdrom}" repo.pub'))
 
@@ -228,7 +227,7 @@ def run_command(argv):
            allow_fail=True,
            env_add={'GNUPGHOME': out_path})
 
-        export_keyring = import_keyring + ".gpg"
+        export_keyring = f"{import_keyring}.gpg"
 
         # No need to set GNUPGHOME because both input and output
         # keyring files are specified.
@@ -246,10 +245,14 @@ def run_command(argv):
                 opts.append(
                     f'--exclude "{os.path.relpath(out_path, start=elbe_dir)}"')
 
-            opts.append("--exclude-vcs")
-            opts.append("--exclude-vcs-ignores")
-            opts.append("--exclude='elbe-build*'")
-            opts.append("--exclude='docs/*'")
+            opts.extend(
+                (
+                    "--exclude-vcs",
+                    "--exclude-vcs-ignores",
+                    "--exclude='elbe-build*'",
+                    "--exclude='docs/*'",
+                )
+            )
             tar_fname = os.path.join(out_path, "elbe-devel.tar.bz2")
             system(f'tar cfj "{tar_fname}" {" ".join(opts)} -C "{elbe_dir}" .')
 
@@ -272,9 +275,7 @@ def run_command(argv):
 
         # These are already absolute path!
         keyrings = elbe_in.fname(os.path.join("initrd-tree", "usr/share/keyrings"))
-        for gpg in elbe_in.glob("*.gpg"):
-            to_cpy.append((gpg, keyrings))
-
+        to_cpy.extend((gpg, keyrings) for gpg in elbe_in.glob("*.gpg"))
         for src, dst in to_cpy:
             try:
                 os.makedirs(dst)
